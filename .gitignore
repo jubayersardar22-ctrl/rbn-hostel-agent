@@ -7,3 +7,4 @@ bengali_content.txt
 extract_data.js
 extract_detailed.js
 .env
+.env.deploy

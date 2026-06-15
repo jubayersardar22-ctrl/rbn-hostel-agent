@@ -263,18 +263,19 @@ function initWhatsApp() {
         await chat.sendStateTyping();
       } catch {}
 
-      // Gemini দিয়ে উত্তর দাও (যদি চালু থাকে)
-      const geminiSettings = getSettings();
-      if (geminiSettings.geminiEnabled && geminiSettings.geminiApiKey) {
-        const aiReply = await gemini.generateReply(msg.from, body);
+      // ===== Gemini AI দিয়ে উত্তর =====
+      // প্রথমে Gemini চেষ্টা করো — না পারলে knowledge base fallback
+      if (gemini.isReady()) {
+        const aiReply = await gemini.reply(msg.from, body);
         if (aiReply) {
           await msg.reply(aiReply);
           return;
         }
       }
 
-      // Fallback to knowledge base handler
+      // Fallback: knowledge base handler
       await messageHandler.processMessage(msg, msg.from, body);
+
 
     } catch (error) {
       console.error('❌ Message error:', error.message);

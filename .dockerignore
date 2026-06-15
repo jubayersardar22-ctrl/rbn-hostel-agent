@@ -1,0 +1,9 @@
+.wwebjs_auth
+.wwebjs_cache
+node_modules
+extract_data.js
+extract_detailed.js
+extracted_data.json
+bengali_content.txt
+*.log
+.env

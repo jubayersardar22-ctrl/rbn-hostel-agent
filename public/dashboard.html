@@ -244,7 +244,7 @@
     <span class="nav-icon">💬</span><span>WhatsApp</span>
   </div>
   <div class="nav-item" onclick="showSection('gemini')">
-    <span class="nav-icon">🤖</span><span>Gemini AI</span>
+    <span class="nav-icon">🤖</span><span>AI সহকারী</span>
   </div>
   <div class="nav-item" onclick="showSection('settings')">
     <span class="nav-icon">⚙️</span><span>সেটিংস</span>
@@ -284,7 +284,7 @@
       <div class="stat-card purple">
         <div class="stat-icon">🤖</div>
         <div class="stat-value" id="geminiStatus">বন্ধ</div>
-        <div class="stat-label">Gemini AI</div>
+        <div class="stat-label">AI সহকারী</div>
       </div>
       <div class="stat-card amber">
         <div class="stat-icon">📱</div>
@@ -400,32 +400,42 @@
     </div>
   </div>
 
-  <!-- ===== GEMINI AI ===== -->
+  <!-- ===== AI CONFIG ===== -->
   <div class="section" id="section-gemini">
     <div class="page-header">
       <div>
-        <div class="page-title">🤖 Gemini AI সেটআপ</div>
-        <div class="page-sub">Google Gemini API দিয়ে মানবিক ও বুদ্ধিমান উত্তর</div>
+        <div class="page-title">🤖 AI সহকারী সেটআপ</div>
+        <div class="page-sub">Gemini, OpenAI, বা Claude দিয়ে মানবিক ও বুদ্ধিমান উত্তর</div>
       </div>
     </div>
 
     <div class="two-col">
       <div class="card">
         <div class="card-title">🔑 API Key ব্যবস্থাপনা</div>
+        
+        <div class="input-group" style="margin-bottom: 20px;">
+          <label class="input-label">LLM প্রোভাইডার নির্বাচন করুন</label>
+          <select id="llmProvider" class="input" onchange="updateLlmUI()">
+            <option value="gemini">Google Gemini (ফ্রি)</option>
+            <option value="openai">OpenAI (ChatGPT)</option>
+            <option value="claude">Anthropic Claude</option>
+          </select>
+        </div>
+
         <div class="input-group">
-          <label class="input-label">Gemini API Key</label>
+          <label class="input-label">API Key</label>
           <div class="input-row">
-            <input type="password" class="input" id="geminiKeyInput" placeholder="AIzaSy... (Google AI Studio থেকে নিন)">
+            <input type="password" class="input" id="llmKeyInput" placeholder="API Key দিন...">
           </div>
           <div style="font-size: 12px; color: var(--muted); margin-top: 8px;" id="keyStatus">
-            কোনো Key সেট করা নেই
+            লোড হচ্ছে...
           </div>
         </div>
         <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-          <button class="btn btn-primary" onclick="saveGeminiKey()">💾 Key সংরক্ষণ করুন</button>
-          <button class="btn btn-danger" onclick="deleteGeminiKey()">🗑️ Key মুছুন</button>
+          <button class="btn btn-primary" onclick="saveLlmKey()">💾 Key সংরক্ষণ করুন</button>
+          <button class="btn btn-danger" onclick="deleteLlmKey()">🗑️ Key মুছুন</button>
         </div>
-        <div style="margin-top: 16px; padding: 14px; background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.3); border-radius: 10px; font-size: 13px; color: var(--blue);">
+        <div style="margin-top: 16px; padding: 14px; background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.3); border-radius: 10px; font-size: 13px; color: var(--blue);" id="llmHint">
           💡 Google AI Studio থেকে ফ্রি API Key নিন:<br>
           <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color: var(--blue); font-weight: 600;">aistudio.google.com/app/apikey</a>
         </div>
@@ -435,18 +445,18 @@
         <div class="card-title">⚙️ AI কনফিগারেশন</div>
         <div class="toggle-row">
           <div class="toggle-info">
-            <div class="toggle-label">Gemini AI চালু করুন</div>
+            <div class="toggle-label">AI চালু করুন</div>
             <div class="toggle-desc">চালু থাকলে সব উত্তর AI দেবে</div>
           </div>
           <div class="toggle" id="geminiToggle2" onclick="toggleGemini()"></div>
         </div>
         <div style="margin-top: 20px; padding: 14px; background: rgba(139,92,246,0.1); border: 1px solid rgba(139,92,246,0.3); border-radius: 10px; font-size: 13px; color: var(--purple);">
-          🤖 <strong>Gemini চালু থাকলে:</strong><br><br>
-          ✅ মানুষের মতো কথোপকথন<br>
+          🤖 <strong>AI চালু থাকলে:</strong><br><br>
+          ✅ মানুষের মতো মজাদার কথোপকথন<br>
           ✅ প্রসঙ্গ মনে রাখে (৫টা মেসেজ)<br>
           ✅ ধাপে ধাপে বুকিং গাইড<br>
-          ✅ বাংলায় স্বাভাবিক ভাষা<br><br>
-          ⚠️ বন্ধ থাকলে: পূর্বের keyword সিস্টেম
+          ✅ API Key সম্পূর্ণ নিরাপদে (Railway Env Vars) সেভ হবে<br><br>
+          ⚠️ বন্ধ থাকলে: পূর্বের keyword সিস্টেম কাজ করবে
         </div>
       </div>
     </div>
@@ -557,8 +567,6 @@
       updateToggle('geminiToggle', s.geminiEnabled);
       updateToggle('geminiToggle2', s.geminiEnabled);
       document.getElementById('geminiStatus').textContent = s.geminiEnabled ? '✅ চালু' : 'বন্ধ';
-      document.getElementById('keyStatus').textContent = s.hasGeminiKey ?
-        `✅ Key সেট: ${s.geminiKeyPreview}` : '❌ কোনো Key নেই';
 
       if (s.maintenanceContacts) {
         const c = s.maintenanceContacts;
@@ -568,6 +576,41 @@
         });
       }
     } catch(e) {}
+    
+    loadLlmKeys();
+  }
+
+  let llmKeys = {};
+  async function loadLlmKeys() {
+    try {
+      const res = await fetch('/api/llm/keys');
+      const data = await res.json();
+      if (!data.hasToken) {
+        document.getElementById('keyStatus').textContent = '⚠️ Railway Token সেট করা নেই';
+      } else {
+        llmKeys = data.keys || {};
+        updateLlmUI();
+      }
+    } catch(e) {}
+  }
+
+  function updateLlmUI() {
+    const provider = document.getElementById('llmProvider').value;
+    const varMap = { 'gemini': 'GEMINI_API_KEY', 'openai': 'OPENAI_API_KEY', 'claude': 'CLAUDE_API_KEY' };
+    const key = llmKeys[varMap[provider]];
+    
+    if (key) {
+      document.getElementById('keyStatus').textContent = `✅ Key সেট করা আছে: ${key}`;
+    } else {
+      document.getElementById('keyStatus').textContent = '❌ কোনো Key সেট করা নেই';
+    }
+
+    const hintMap = {
+      'gemini': '💡 Google AI Studio থেকে ফ্রি API Key নিন:<br><a href="https://aistudio.google.com/app/apikey" target="_blank" style="color: var(--blue); font-weight: 600;">aistudio.google.com/app/apikey</a>',
+      'openai': '💡 OpenAI Platform থেকে API Key নিন:<br><a href="https://platform.openai.com/api-keys" target="_blank" style="color: var(--blue); font-weight: 600;">platform.openai.com/api-keys</a>',
+      'claude': '💡 Anthropic Console থেকে API Key নিন:<br><a href="https://console.anthropic.com/settings/keys" target="_blank" style="color: var(--blue); font-weight: 600;">console.anthropic.com</a>'
+    };
+    document.getElementById('llmHint').innerHTML = hintMap[provider];
   }
 
   function updateUI() {
@@ -658,10 +701,15 @@
   }
 
   async function toggleGemini() {
+    const provider = document.getElementById('llmProvider').value;
+    const varMap = { 'gemini': 'GEMINI_API_KEY', 'openai': 'OPENAI_API_KEY', 'claude': 'CLAUDE_API_KEY' };
+    const hasKey = !!llmKeys[varMap[provider]];
+    
     const settings = await (await fetch('/api/settings')).json();
     const newState = !settings.geminiEnabled;
-    if (newState && !settings.hasGeminiKey) {
-      showToast('⚠️ আগে Gemini API Key যোগ করুন!', 'error');
+    
+    if (newState && !hasKey) {
+      showToast('⚠️ আগে API Key যোগ করুন!', 'error');
       showSection('gemini');
       return;
     }
@@ -669,33 +717,48 @@
     updateToggle('geminiToggle', newState);
     updateToggle('geminiToggle2', newState);
     document.getElementById('geminiStatus').textContent = newState ? '✅ চালু' : 'বন্ধ';
-    showToast(newState ? '🤖 Gemini AI চালু হয়েছে!' : '⏸️ Gemini AI বন্ধ করা হয়েছে', 'success');
+    showToast(newState ? '🤖 AI চালু হয়েছে!' : '⏸️ AI বন্ধ করা হয়েছে', 'success');
   }
 
-  async function saveGeminiKey() {
-    const key = document.getElementById('geminiKeyInput').value.trim();
+  async function saveLlmKey() {
+    const provider = document.getElementById('llmProvider').value;
+    const key = document.getElementById('llmKeyInput').value.trim();
     if (!key) { showToast('⚠️ API Key লিখুন!', 'error'); return; }
-    const res = await fetch('/api/settings', {
+    
+    showToast('⏳ Railway তে Key সেভ হচ্ছে...', 'success');
+    
+    const res = await fetch('/api/llm/key', {
       method: 'POST', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ geminiApiKey: key, geminiEnabled: true })
+      body: JSON.stringify({ provider, key })
     });
     const data = await res.json();
-    document.getElementById('geminiKeyInput').value = '';
-    document.getElementById('keyStatus').textContent = '✅ Key সেট করা হয়েছে!';
-    updateToggle('geminiToggle', true);
-    updateToggle('geminiToggle2', true);
-    document.getElementById('geminiStatus').textContent = '✅ চালু';
-    showToast('✅ Gemini API Key সংরক্ষিত ও চালু!', 'success');
+    if(data.success) {
+      document.getElementById('llmKeyInput').value = '';
+      loadLlmKeys();
+      showToast(data.message, 'success');
+      setTimeout(loadStatus, 2000);
+    } else {
+      showToast('❌ ' + data.message, 'error');
+    }
   }
 
-  async function deleteGeminiKey() {
-    if (!confirm('Gemini API Key মুছে দেবেন?')) return;
-    await fetch('/api/settings/gemini-key', { method: 'DELETE' });
-    document.getElementById('keyStatus').textContent = '❌ কোনো Key নেই';
-    updateToggle('geminiToggle', false);
-    updateToggle('geminiToggle2', false);
-    document.getElementById('geminiStatus').textContent = 'বন্ধ';
-    showToast('🗑️ API Key মুছে দেওয়া হয়েছে', 'success');
+  async function deleteLlmKey() {
+    const provider = document.getElementById('llmProvider').value;
+    if (!confirm(`${provider} API Key মুছে দেবেন?`)) return;
+    
+    showToast('⏳ Railway থেকে Key মুছা হচ্ছে...', 'success');
+    
+    const res = await fetch('/api/llm/key', { 
+      method: 'DELETE', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ provider })
+    });
+    const data = await res.json();
+    if(data.success) {
+      loadLlmKeys();
+      showToast(data.message, 'success');
+    } else {
+      showToast('❌ ' + data.message, 'error');
+    }
   }
 
   async function disconnectWhatsApp() {

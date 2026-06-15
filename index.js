@@ -1,8 +1,9 @@
 // =============================================================
-// নিবেদিকা ভিআইপি হোস্টেল - WhatsApp AI এজেন্ট v3.0
-// Express + WebSocket + Gemini AI + Dashboard
+// নিবেদিকা ভিআইপি হোস্টেল - WhatsApp AI এজেন্ট v4.0
+// Express + WebSocket + Multi-LLM (Gemini/OpenAI/Claude) + Dashboard
 // =============================================================
 'use strict';
+
 
 require('dotenv').config();
 const express = require('express');
@@ -17,7 +18,9 @@ const fs = require('fs');
 const HOSTEL_INFO = require('./knowledge_base');
 const MessageHandler = require('./handlers/messageHandler');
 const MaintenanceHandler = require('./handlers/maintenanceHandler');
-const gemini = require('./gemini');
+const llm = require('./llm-router');
+const railwayVars = require('./railway-vars');
+
 
 // ===== Settings ম্যানেজার =====
 const SETTINGS_PATH = path.join(__dirname, 'settings.json');
@@ -105,17 +108,11 @@ app.get('/api/settings', (req, res) => {
 // Settings UPDATE
 app.post('/api/settings', (req, res) => {
   try {
-    const { geminiApiKey, geminiEnabled, agentEnabled } = req.body;
+    const { agentEnabled, maintenanceContacts } = req.body;
     const update = {};
-    if (geminiApiKey !== undefined) update.geminiApiKey = geminiApiKey;
-    if (geminiEnabled !== undefined) update.geminiEnabled = geminiEnabled;
     if (agentEnabled !== undefined) update.agentEnabled = agentEnabled;
+    if (maintenanceContacts !== undefined) update.maintenanceContacts = maintenanceContacts;
     saveSettings(update);
-
-    // Gemini রিফ্রেশ করো
-    if (geminiApiKey !== undefined || geminiEnabled !== undefined) {
-      gemini.refresh();
-    }
 
     broadcast({ type: 'settings_updated', ...getSettings() });
     res.json({ success: true, message: 'সেটিংস সংরক্ষিত হয়েছে!' });
@@ -123,6 +120,61 @@ app.post('/api/settings', (req, res) => {
     res.status(500).json({ success: false, message: e.message });
   }
 });
+
+// ===== LLM Management Routes =====
+app.get('/api/llm/keys', async (req, res) => {
+  try {
+    if (!railwayVars.hasToken()) {
+      return res.json({ hasToken: false, keys: {} });
+    }
+    const keys = await railwayVars.getVariables();
+    res.json({ hasToken: true, keys });
+  } catch (e) {
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
+
+app.post('/api/llm/key', async (req, res) => {
+  try {
+    const { provider, key } = req.body;
+    const varMap = {
+      'gemini': 'GEMINI_API_KEY',
+      'openai': 'OPENAI_API_KEY',
+      'claude': 'CLAUDE_API_KEY'
+    };
+    const varName = varMap[provider];
+    if (!varName) throw new Error('Unknown provider');
+    
+    await railwayVars.setVariable(varName, key);
+    saveSettings({ llmProvider: provider, geminiEnabled: true });
+    setTimeout(() => llm.refresh(), 2000); // give railway time to update
+    
+    res.json({ success: true, message: `${provider} API Key সংরক্ষিত হয়েছে! (Deployment trigger হয়েছে)` });
+  } catch (e) {
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
+
+app.delete('/api/llm/key', async (req, res) => {
+  try {
+    const { provider } = req.body;
+    const varMap = {
+      'gemini': 'GEMINI_API_KEY',
+      'openai': 'OPENAI_API_KEY',
+      'claude': 'CLAUDE_API_KEY'
+    };
+    const varName = varMap[provider];
+    if (!varName) throw new Error('Unknown provider');
+
+    await railwayVars.deleteVariable(varName);
+    setTimeout(() => llm.refresh(), 2000);
+    
+    res.json({ success: true, message: `${provider} API Key মুছে ফেলা হয়েছে!` });
+  } catch (e) {
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
+
 
 // Agent Toggle
 app.post('/api/agent/toggle', (req, res) => {
@@ -176,13 +228,7 @@ app.post('/api/whatsapp/reconnect', async (req, res) => {
   }
 });
 
-// Gemini API Key DELETE
-app.delete('/api/settings/gemini-key', (req, res) => {
-  saveSettings({ geminiApiKey: '', geminiEnabled: false });
-  gemini.refresh();
-  broadcast({ type: 'settings_updated' });
-  res.json({ success: true, message: 'Gemini API Key মুছে দেওয়া হয়েছে।' });
-});
+// This old endpoint is removed in favor of the new LLM API
 
 // ===== WhatsApp Client =====
 function initWhatsApp() {
@@ -263,10 +309,10 @@ function initWhatsApp() {
         await chat.sendStateTyping();
       } catch {}
 
-      // ===== Gemini AI দিয়ে উত্তর =====
-      // প্রথমে Gemini চেষ্টা করো — না পারলে knowledge base fallback
-      if (gemini.isReady()) {
-        const aiReply = await gemini.reply(msg.from, body);
+      // ===== LLM (Gemini/OpenAI/Claude) দিয়ে উত্তর =====
+      // প্রথমে LLM চেষ্টা করো — না পারলে knowledge base fallback
+      if (llm.isReady()) {
+        const aiReply = await llm.reply(msg.from, body);
         if (aiReply) {
           await msg.reply(aiReply);
           return;

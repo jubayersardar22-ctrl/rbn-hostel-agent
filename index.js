@@ -1,292 +1,326 @@
 // =============================================================
-// নিবেদিকা ভিআইপি হোস্টেল - WhatsApp এজেন্ট
-// Nibedika VIP Hostel - WhatsApp Agent (Cloud-Ready Version)
+// নিবেদিকা ভিআইপি হোস্টেল - WhatsApp AI এজেন্ট v3.0
+// Express + WebSocket + Gemini AI + Dashboard
 // =============================================================
-
 'use strict';
 
 require('dotenv').config();
-const { Client, LocalAuth, MessageMedia } = require('whatsapp-web.js');
+const express = require('express');
+const http = require('http');
+const WebSocket = require('ws');
+const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode-terminal');
 const QRCode = require('qrcode');
-const http = require('http');
 const path = require('path');
 const fs = require('fs');
 
 const HOSTEL_INFO = require('./knowledge_base');
 const MessageHandler = require('./handlers/messageHandler');
 const MaintenanceHandler = require('./handlers/maintenanceHandler');
+const gemini = require('./gemini');
 
-// ===== কনফিগারেশন =====
-const CONFIG = {
-  agentName: "নিবেদিকা সহকারী",
-  welcomeDelay: 1000,
-  typingIndicator: true,
-  maxRetries: 3,
-  port: process.env.PORT || 3000
-};
+// ===== Settings ম্যানেজার =====
+const SETTINGS_PATH = path.join(__dirname, 'settings.json');
+function getSettings() {
+  try { return JSON.parse(fs.readFileSync(SETTINGS_PATH, 'utf8')); }
+  catch { return { agentEnabled: true, geminiEnabled: false, geminiApiKey: '', dashboardPassword: 'nibedika2024' }; }
+}
+function saveSettings(data) {
+  const current = getSettings();
+  fs.writeFileSync(SETTINGS_PATH, JSON.stringify({ ...current, ...data }, null, 2));
+}
 
-// ===== QR Code স্টোরেজ =====
+// ===== State =====
 let currentQR = null;
 let qrImageDataUrl = null;
 let isReady = false;
+let isConnected = false;
 let startTime = new Date();
+let messageCount = 0;
+let client = null;
+let wss = null;
+const PORT = process.env.PORT || 3000;
 
-// ===== ওয়েব সার্ভার (QR Code দেখানোর জন্য) =====
-const server = http.createServer(async (req, res) => {
-  if (req.url === '/qr' || req.url === '/') {
-    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-    
-    if (isReady) {
-      res.end(`<!DOCTYPE html>
-<html lang="bn">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>নিবেদিকা WhatsApp এজেন্ট</title>
-  <style>
-    body { font-family: Arial, sans-serif; background: #128C7E; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
-    .card { background: white; border-radius: 20px; padding: 40px; text-align: center; max-width: 500px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
-    .status { font-size: 60px; margin-bottom: 20px; }
-    h1 { color: #128C7E; font-size: 24px; margin-bottom: 10px; }
-    p { color: #666; line-height: 1.6; }
-    .badge { background: #25D366; color: white; padding: 8px 20px; border-radius: 50px; font-size: 14px; display: inline-block; margin-top: 15px; }
-    .uptime { margin-top: 20px; font-size: 12px; color: #999; }
-  </style>
-</head>
-<body>
-  <div class="card">
-    <div class="status">✅</div>
-    <h1>🏠 নিবেদিকা হোস্টেল<br>WhatsApp এজেন্ট</h1>
-    <p>এজেন্ট সফলভাবে চলছে এবং মেসেজের জন্য প্রস্তুত!</p>
-    <div class="badge">🟢 ONLINE & READY</div>
-    <div class="uptime">চালু হয়েছে: ${startTime.toLocaleString('bn-BD')}</div>
-  </div>
-</body>
-</html>`);
-    } else if (qrImageDataUrl) {
-      res.end(`<!DOCTYPE html>
-<html lang="bn">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="refresh" content="30">
-  <title>QR Code - নিবেদিকা এজেন্ট</title>
-  <style>
-    body { font-family: Arial, sans-serif; background: #128C7E; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
-    .card { background: white; border-radius: 20px; padding: 40px; text-align: center; max-width: 400px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
-    h1 { color: #128C7E; font-size: 22px; margin-bottom: 5px; }
-    .subtitle { color: #666; font-size: 14px; margin-bottom: 25px; }
-    img { width: 280px; height: 280px; border: 3px solid #128C7E; border-radius: 10px; }
-    .steps { text-align: left; margin-top: 20px; background: #f0faf0; border-radius: 10px; padding: 15px; }
-    .steps p { margin: 5px 0; font-size: 13px; color: #333; }
-    .refresh { margin-top: 15px; font-size: 12px; color: #999; }
-  </style>
-</head>
-<body>
-  <div class="card">
-    <h1>📱 QR Code স্ক্যান করুন</h1>
-    <p class="subtitle">নিবেদিকা হোস্টেল WhatsApp এজেন্ট</p>
-    <img src="${qrImageDataUrl}" alt="WhatsApp QR Code" />
-    <div class="steps">
-      <p>1️⃣ WhatsApp খুলুন</p>
-      <p>2️⃣ ⋮ (তিনটি ডট) চাপুন</p>
-      <p>3️⃣ Linked Devices এ যান</p>
-      <p>4️⃣ Link a Device চাপুন</p>
-      <p>5️⃣ উপরের QR Code স্ক্যান করুন</p>
-    </div>
-    <p class="refresh">⏱️ পেজ ৩০ সেকেন্ড পর পর রিফ্রেশ হবে</p>
-  </div>
-</body>
-</html>`);
-    } else {
-      res.end(`<!DOCTYPE html>
-<html lang="bn">
-<head>
-  <meta charset="UTF-8">
-  <meta http-equiv="refresh" content="5">
-  <title>শুরু হচ্ছে...</title>
-  <style>
-    body { font-family: Arial, sans-serif; background: #128C7E; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
-    .card { background: white; border-radius: 20px; padding: 40px; text-align: center; max-width: 400px; }
-    .spinner { font-size: 50px; animation: spin 2s linear infinite; display: inline-block; }
-    @keyframes spin { 0%{transform:rotate(0deg)} 100%{transform:rotate(360deg)} }
-    h1 { color: #128C7E; margin-top: 20px; }
-    p { color: #666; }
-  </style>
-</head>
-<body>
-  <div class="card">
-    <div class="spinner">⚙️</div>
-    <h1>শুরু হচ্ছে...</h1>
-    <p>এজেন্ট লোড হচ্ছে। কিছুক্ষণ অপেক্ষা করুন।<br>পেজটি স্বয়ংক্রিয়ভাবে রিফ্রেশ হবে।</p>
-  </div>
-</body>
-</html>`);
-    }
-  } else if (req.url === '/health') {
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ 
-      status: isReady ? 'ready' : 'waiting_qr',
-      uptime: Math.floor((Date.now() - startTime) / 1000) + 's',
-      timestamp: new Date().toISOString()
-    }));
+// ===== Express App =====
+const app = express();
+app.use(express.json());
+app.use(express.static(path.join(__dirname, 'public')));
+
+// ===== HTTP Server =====
+const server = http.createServer(app);
+
+// ===== WebSocket (real-time updates) =====
+wss = new WebSocket.Server({ server });
+function broadcast(data) {
+  const msg = JSON.stringify(data);
+  wss.clients.forEach(c => { if (c.readyState === WebSocket.OPEN) c.send(msg); });
+}
+
+// ===== Dashboard Routes =====
+
+// Main dashboard
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
+});
+
+// Status API
+app.get('/api/status', (req, res) => {
+  const settings = getSettings();
+  res.json({
+    isReady,
+    isConnected,
+    agentEnabled: settings.agentEnabled,
+    geminiEnabled: settings.geminiEnabled,
+    hasGeminiKey: !!(settings.geminiApiKey),
+    messageCount,
+    uptime: Math.floor((Date.now() - startTime) / 1000),
+    startTime: startTime.toISOString(),
+    hasQR: !!qrImageDataUrl
+  });
+});
+
+// QR Code API
+app.get('/api/qr', (req, res) => {
+  if (qrImageDataUrl) {
+    res.json({ qr: qrImageDataUrl });
+  } else if (isReady) {
+    res.json({ status: 'connected' });
   } else {
-    res.writeHead(404);
-    res.end('Not Found');
+    res.json({ status: 'loading' });
   }
 });
 
-server.listen(CONFIG.port, () => {
-  console.log(`\n🌐 ওয়েব সার্ভার চালু: http://localhost:${CONFIG.port}`);
-  console.log(`   QR Code দেখতে: http://localhost:${CONFIG.port}/qr`);
-  console.log(`   Health check: http://localhost:${CONFIG.port}/health\n`);
+// Settings GET
+app.get('/api/settings', (req, res) => {
+  const s = getSettings();
+  res.json({
+    geminiEnabled: s.geminiEnabled,
+    hasGeminiKey: !!(s.geminiApiKey),
+    geminiKeyPreview: s.geminiApiKey ? '****' + s.geminiApiKey.slice(-6) : '',
+    agentEnabled: s.agentEnabled,
+    maintenanceContacts: s.maintenanceContacts || {}
+  });
+});
+
+// Settings UPDATE
+app.post('/api/settings', (req, res) => {
+  try {
+    const { geminiApiKey, geminiEnabled, agentEnabled } = req.body;
+    const update = {};
+    if (geminiApiKey !== undefined) update.geminiApiKey = geminiApiKey;
+    if (geminiEnabled !== undefined) update.geminiEnabled = geminiEnabled;
+    if (agentEnabled !== undefined) update.agentEnabled = agentEnabled;
+    saveSettings(update);
+
+    // Gemini রিফ্রেশ করো
+    if (geminiApiKey !== undefined || geminiEnabled !== undefined) {
+      gemini.refresh();
+    }
+
+    broadcast({ type: 'settings_updated', ...getSettings() });
+    res.json({ success: true, message: 'সেটিংস সংরক্ষিত হয়েছে!' });
+  } catch (e) {
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
+
+// Agent Toggle
+app.post('/api/agent/toggle', (req, res) => {
+  const s = getSettings();
+  const newState = !s.agentEnabled;
+  saveSettings({ agentEnabled: newState });
+  broadcast({ type: 'agent_toggled', agentEnabled: newState });
+  res.json({ success: true, agentEnabled: newState });
+});
+
+// WhatsApp Disconnect
+app.post('/api/whatsapp/disconnect', async (req, res) => {
+  try {
+    isReady = false;
+    isConnected = false;
+    currentQR = null;
+    qrImageDataUrl = null;
+
+    if (client) {
+      await client.logout().catch(() => {});
+      await client.destroy().catch(() => {});
+    }
+
+    // Auth folder মুছে ফেলো
+    const authPath = path.join(__dirname, '.wwebjs_auth');
+    if (fs.existsSync(authPath)) {
+      fs.rmSync(authPath, { recursive: true, force: true });
+    }
+
+    broadcast({ type: 'whatsapp_disconnected' });
+    res.json({ success: true, message: 'WhatsApp সংযোগ বিচ্ছিন্ন হয়েছে। নতুন QR আসছে...' });
+
+    // পুনরায় চালু করো
+    setTimeout(() => initWhatsApp(), 3000);
+  } catch (e) {
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
+
+// WhatsApp Reconnect
+app.post('/api/whatsapp/reconnect', async (req, res) => {
+  try {
+    if (client) {
+      await client.destroy().catch(() => {});
+    }
+    broadcast({ type: 'whatsapp_reconnecting' });
+    res.json({ success: true, message: 'পুনরায় সংযোগ করা হচ্ছে...' });
+    setTimeout(() => initWhatsApp(), 2000);
+  } catch (e) {
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
+
+// Gemini API Key DELETE
+app.delete('/api/settings/gemini-key', (req, res) => {
+  saveSettings({ geminiApiKey: '', geminiEnabled: false });
+  gemini.refresh();
+  broadcast({ type: 'settings_updated' });
+  res.json({ success: true, message: 'Gemini API Key মুছে দেওয়া হয়েছে।' });
 });
 
 // ===== WhatsApp Client =====
-const clientConfig = {
-  authStrategy: new LocalAuth({
-    dataPath: path.join(__dirname, '.wwebjs_auth')
-  }),
-  puppeteer: {
-    headless: true,
-    executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
-    args: [
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-dev-shm-usage',
-      '--disable-accelerated-2d-canvas',
-      '--no-first-run',
-      '--no-zygote',
-      '--single-process',
-      '--disable-gpu',
-      '--disable-extensions',
-      '--disable-software-rasterizer',
-      '--disable-background-timer-throttling',
-      '--disable-backgrounding-occluded-windows',
-      '--disable-renderer-backgrounding'
-    ]
-  }
-};
+function initWhatsApp() {
+  console.log('\n🔄 WhatsApp Client চালু হচ্ছে...');
 
-const client = new Client(clientConfig);
-const messageHandler = new MessageHandler(client, HOSTEL_INFO, CONFIG);
-const maintenanceHandler = new MaintenanceHandler(client, HOSTEL_INFO);
+  client = new Client({
+    authStrategy: new LocalAuth({ dataPath: path.join(__dirname, '.wwebjs_auth') }),
+    puppeteer: {
+      headless: true,
+      executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
+      args: [
+        '--no-sandbox', '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage', '--disable-accelerated-2d-canvas',
+        '--no-first-run', '--no-zygote', '--single-process',
+        '--disable-gpu', '--disable-extensions'
+      ]
+    }
+  });
 
-// ===== QR Code জেনারেশন =====
-client.on('qr', async (qr) => {
-  currentQR = qr;
-  
-  // Terminal এ দেখাও
-  console.log('\n' + '='.repeat(60));
-  console.log('📱 QR CODE - WhatsApp স্ক্যান করুন:');
-  console.log('='.repeat(60));
-  qrcode.generate(qr, { small: true });
-  console.log(`\n🌐 ওয়েব ব্রাউজারে দেখুন: http://localhost:${CONFIG.port}/qr\n`);
-  
-  // QR Image তৈরি করো (ওয়েব পেজের জন্য)
-  try {
-    qrImageDataUrl = await QRCode.toDataURL(qr, {
-      width: 280,
-      margin: 2,
-      color: { dark: '#128C7E', light: '#FFFFFF' }
-    });
-    console.log('✅ QR Image তৈরি হয়েছে - ব্রাউজারে দেখুন!');
-  } catch (err) {
-    console.error('QR Image তৈরিতে সমস্যা:', err.message);
-  }
-});
+  const messageHandler = new MessageHandler(client, HOSTEL_INFO, { agentName: 'নিবেদিকা সহকারী' });
+  const maintenanceHandler = new MaintenanceHandler(client, HOSTEL_INFO);
 
-// ===== অথেনটিকেশন সফল =====
-client.on('authenticated', () => {
-  console.log('\n✅ সফলভাবে লগইন হয়েছে! Session সংরক্ষিত হচ্ছে...');
-  currentQR = null;
-  qrImageDataUrl = null;
-});
+  // QR Code
+  client.on('qr', async (qr) => {
+    currentQR = qr;
+    isReady = false;
+    isConnected = false;
+    console.log('\n📱 QR Code তৈরি হয়েছে');
+    qrcode.generate(qr, { small: true });
 
-// ===== Ready =====
-client.on('ready', () => {
-  isReady = true;
-  console.log('\n' + '='.repeat(60));
-  console.log('🎉 নিবেদিকা হোস্টেল WhatsApp এজেন্ট চালু হয়েছে!');
-  console.log('='.repeat(60));
-  console.log(`\n✅ মেয়েদের শাখা: ${HOSTEL_INFO.femaleBranches.length}টি`);
-  console.log(`✅ ছেলেদের শাখা: ${HOSTEL_INFO.maleBranches.length}টি`);
-  console.log(`✅ সাপ্তাহিক মেনু: ৭ দিন`);
-  console.log('\n💬 মেসেজের জন্য প্রস্তুত!\n');
-});
-
-// ===== মেসেজ হ্যান্ডলার =====
-client.on('message', async (msg) => {
-  try {
-    if (msg.isGroupMsg) return;
-    if (msg.from === 'status@broadcast') return;
-    
-    const sender = msg.from;
-    const body = msg.body ? msg.body.trim() : '';
-    
-    if (!body) return;
-    
-    console.log(`\n📨 [${new Date().toLocaleTimeString()}] From: ${sender}`);
-    console.log(`   Message: ${body.substring(0, 80)}`);
-    
-    // Typing indicator
     try {
-      const chat = await msg.getChat();
-      await chat.sendStateTyping();
-    } catch (e) { /* ignore */ }
-    
-    await messageHandler.processMessage(msg, sender, body);
-    
-  } catch (error) {
-    console.error('❌ Message Error:', error.message);
-  }
+      qrImageDataUrl = await QRCode.toDataURL(qr, {
+        width: 300, margin: 2,
+        color: { dark: '#128C7E', light: '#FFFFFF' }
+      });
+      broadcast({ type: 'qr_updated', qr: qrImageDataUrl });
+    } catch (e) {
+      console.error('QR image error:', e.message);
+    }
+  });
+
+  // Authenticated
+  client.on('authenticated', () => {
+    console.log('✅ WhatsApp authenticated!');
+    currentQR = null;
+    qrImageDataUrl = null;
+    isConnected = true;
+    broadcast({ type: 'authenticated' });
+  });
+
+  // Ready
+  client.on('ready', () => {
+    isReady = true;
+    isConnected = true;
+    currentQR = null;
+    qrImageDataUrl = null;
+    console.log('\n🎉 WhatsApp এজেন্ট Ready!');
+    broadcast({ type: 'ready', message: 'WhatsApp এজেন্ট চালু হয়েছে!' });
+  });
+
+  // Message
+  client.on('message', async (msg) => {
+    try {
+      if (msg.isGroupMsg || msg.from === 'status@broadcast') return;
+      const settings = getSettings();
+      if (!settings.agentEnabled) return;
+
+      const body = msg.body ? msg.body.trim() : '';
+      if (!body) return;
+
+      messageCount++;
+      broadcast({ type: 'message_received', count: messageCount, from: msg.from });
+      console.log(`\n📨 [${new Date().toLocaleTimeString()}] ${msg.from}: ${body.substring(0, 60)}`);
+
+      // Typing indicator
+      try {
+        const chat = await msg.getChat();
+        await chat.sendStateTyping();
+      } catch {}
+
+      // Gemini দিয়ে উত্তর দাও (যদি চালু থাকে)
+      const geminiSettings = getSettings();
+      if (geminiSettings.geminiEnabled && geminiSettings.geminiApiKey) {
+        const aiReply = await gemini.generateReply(msg.from, body);
+        if (aiReply) {
+          await msg.reply(aiReply);
+          return;
+        }
+      }
+
+      // Fallback to knowledge base handler
+      await messageHandler.processMessage(msg, msg.from, body);
+
+    } catch (error) {
+      console.error('❌ Message error:', error.message);
+    }
+  });
+
+  // Disconnected
+  client.on('disconnected', (reason) => {
+    isReady = false;
+    isConnected = false;
+    console.log('⚠️ Disconnected:', reason);
+    broadcast({ type: 'disconnected', reason });
+    setTimeout(() => initWhatsApp(), 8000);
+  });
+
+  client.on('auth_failure', () => {
+    isReady = false;
+    isConnected = false;
+    broadcast({ type: 'auth_failure' });
+  });
+
+  client.initialize().catch(err => {
+    console.error('❌ Init error:', err.message);
+    setTimeout(() => initWhatsApp(), 10000);
+  });
+}
+
+// ===== Server Start =====
+server.listen(PORT, () => {
+  console.log('\n' + '='.repeat(60));
+  console.log('🚀 নিবেদিকা VIP হোস্টেল WhatsApp এজেন্ট v3.0');
+  console.log('='.repeat(60));
+  console.log(`\n🌐 Dashboard: http://localhost:${PORT}`);
+  console.log(`📊 Status API: http://localhost:${PORT}/api/status\n`);
+  initWhatsApp();
 });
 
-// ===== কানেকশন বিচ্ছিন্ন =====
-client.on('disconnected', (reason) => {
-  isReady = false;
-  console.log('\n⚠️ ডিসকানেক্ট:', reason);
-  console.log('🔄 পুনরায় সংযোগ করছি...');
-  setTimeout(() => {
-    client.initialize().catch(console.error);
-  }, 5000);
-});
-
-// ===== Auth Failure =====
-client.on('auth_failure', (msg) => {
-  console.error('\n❌ Auth failed:', msg);
-  console.log('🗑️ Session ডিলিট করে পুনরায় QR স্ক্যান করুন।');
-  isReady = false;
-});
-
-// ===== এরর হ্যান্ডলিং =====
-process.on('unhandledRejection', (error) => {
-  console.error('❌ Unhandled:', error.message);
-});
-
+// Graceful shutdown
 process.on('SIGTERM', async () => {
-  console.log('\n👋 এজেন্ট বন্ধ হচ্ছে (SIGTERM)...');
+  if (client) await client.destroy().catch(() => {});
   server.close();
-  await client.destroy().catch(() => {});
   process.exit(0);
 });
-
 process.on('SIGINT', async () => {
-  console.log('\n👋 এজেন্ট বন্ধ হচ্ছে...');
+  if (client) await client.destroy().catch(() => {});
   server.close();
-  await client.destroy().catch(() => {});
   process.exit(0);
 });
-
-// ===== এজেন্ট শুরু =====
-console.log('\n' + '='.repeat(60));
-console.log('🚀 নিবেদিকা VIP হোস্টেল WhatsApp এজেন্ট শুরু হচ্ছে...');
-console.log('='.repeat(60));
-
-client.initialize().catch(err => {
-  console.error('❌ Initialize failed:', err.message);
-  process.exit(1);
-});
-
-module.exports = { client, messageHandler, maintenanceHandler };
+process.on('unhandledRejection', err => console.error('Unhandled:', err.message));

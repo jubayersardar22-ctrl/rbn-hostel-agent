@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>নিবেদিকা হোস্টেল - এজেন্ট ড্যাশবোর্ড</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --green: #25D366;
+      --dark-green: #128C7E;
+      --deeper: #075E54;
+      --bg: #0f1117;
+      --card: #1a1d27;
+      --card2: #1e2130;
+      --border: #2a2d3e;
+      --text: #e8eaf0;
+      --muted: #7b7f94;
+      --red: #ef4444;
+      --amber: #f59e0b;
+      --blue: #3b82f6;
+      --purple: #8b5cf6;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', 'Hind Siliguri', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      position: fixed; left: 0; top: 0; bottom: 0; width: 240px;
+      background: var(--card);
+      border-right: 1px solid var(--border);
+      display: flex; flex-direction: column;
+      padding: 24px 0;
+      z-index: 100;
+    }
+    .logo {
+      padding: 0 24px 24px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 16px;
+    }
+    .logo-icon { font-size: 32px; }
+    .logo-name { font-size: 15px; font-weight: 700; color: var(--green); margin-top: 8px; line-height: 1.3; }
+    .logo-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .nav-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 24px; cursor: pointer;
+      font-size: 14px; color: var(--muted);
+      transition: all 0.2s; border-left: 3px solid transparent;
+    }
+    .nav-item:hover { color: var(--text); background: rgba(255,255,255,0.04); }
+    .nav-item.active { color: var(--green); border-left-color: var(--green); background: rgba(37,211,102,0.08); }
+    .nav-icon { font-size: 18px; }
+    .sidebar-bottom { margin-top: auto; padding: 16px 24px; border-top: 1px solid var(--border); }
+    .agent-status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+    .agent-status-dot.online { background: var(--green); box-shadow: 0 0 8px var(--green); animation: blink 2s infinite; }
+    .agent-status-dot.offline { background: var(--red); }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+    /* Main */
+    .main { margin-left: 240px; padding: 32px; min-height: 100vh; }
+
+    /* Header */
+    .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; }
+    .page-title { font-size: 24px; font-weight: 700; }
+    .page-sub { font-size: 13px; color: var(--muted); margin-top: 4px; }
+
+    /* Cards */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+    .card-title {
+      font-size: 14px; font-weight: 600; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 0.5px;
+      margin-bottom: 20px; display: flex; align-items: center; gap: 8px;
+    }
+
+    /* Stats Grid */
+    .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 20px; }
+    .stat-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px; text-align: center;
+    }
+    .stat-icon { font-size: 28px; margin-bottom: 10px; }
+    .stat-value { font-size: 26px; font-weight: 700; color: var(--text); }
+    .stat-label { font-size: 12px; color: var(--muted); margin-top: 4px; }
+    .stat-card.green { border-color: rgba(37,211,102,0.3); background: rgba(37,211,102,0.05); }
+    .stat-card.blue { border-color: rgba(59,130,246,0.3); background: rgba(59,130,246,0.05); }
+    .stat-card.purple { border-color: rgba(139,92,246,0.3); background: rgba(139,92,246,0.05); }
+    .stat-card.amber { border-color: rgba(245,158,11,0.3); background: rgba(245,158,11,0.05); }
+
+    /* Two column layout */
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+
+    /* Status Badge */
+    .badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 6px 14px; border-radius: 50px; font-size: 13px; font-weight: 600;
+    }
+    .badge.online { background: rgba(37,211,102,0.15); color: var(--green); border: 1px solid rgba(37,211,102,0.3); }
+    .badge.offline { background: rgba(239,68,68,0.15); color: var(--red); border: 1px solid rgba(239,68,68,0.3); }
+    .badge.waiting { background: rgba(245,158,11,0.15); color: var(--amber); border: 1px solid rgba(245,158,11,0.3); }
+
+    /* Toggle Switch */
+    .toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 16px 0; border-bottom: 1px solid var(--border); }
+    .toggle-row:last-child { border-bottom: none; }
+    .toggle-info { flex: 1; }
+    .toggle-label { font-size: 15px; font-weight: 500; }
+    .toggle-desc { font-size: 12px; color: var(--muted); margin-top: 3px; }
+    .toggle {
+      position: relative; width: 52px; height: 28px;
+      background: var(--border); border-radius: 14px; cursor: pointer;
+      transition: background 0.3s; flex-shrink: 0;
+    }
+    .toggle.on { background: var(--green); }
+    .toggle::after {
+      content: ''; position: absolute;
+      width: 22px; height: 22px; border-radius: 50%;
+      background: white; top: 3px; left: 3px;
+      transition: transform 0.3s;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    }
+    .toggle.on::after { transform: translateX(24px); }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 10px 20px; border-radius: 10px; border: none;
+      font-size: 14px; font-weight: 600; cursor: pointer;
+      transition: all 0.2s; font-family: inherit;
+    }
+    .btn-primary { background: var(--green); color: #000; }
+    .btn-primary:hover { background: #20c05a; transform: translateY(-1px); }
+    .btn-danger { background: rgba(239,68,68,0.15); color: var(--red); border: 1px solid rgba(239,68,68,0.3); }
+    .btn-danger:hover { background: var(--red); color: white; }
+    .btn-secondary { background: var(--card2); color: var(--text); border: 1px solid var(--border); }
+    .btn-secondary:hover { border-color: var(--green); color: var(--green); }
+    .btn-blue { background: rgba(59,130,246,0.15); color: var(--blue); border: 1px solid rgba(59,130,246,0.3); }
+    .btn-blue:hover { background: var(--blue); color: white; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
+
+    /* Input */
+    .input-group { margin-bottom: 16px; }
+    .input-label { font-size: 13px; color: var(--muted); margin-bottom: 8px; display: block; }
+    .input {
+      width: 100%; padding: 12px 16px;
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: 10px; color: var(--text); font-size: 14px;
+      font-family: inherit; transition: border-color 0.2s; outline: none;
+    }
+    .input:focus { border-color: var(--green); }
+    .input-row { display: flex; gap: 10px; }
+    .input-row .input { flex: 1; }
+
+    /* QR Section */
+    .qr-container { text-align: center; padding: 20px; }
+    .qr-img { width: 220px; height: 220px; border-radius: 16px; border: 3px solid var(--green); margin: 0 auto 16px; display: block; }
+    .qr-placeholder {
+      width: 220px; height: 220px; border-radius: 16px;
+      border: 2px dashed var(--border); margin: 0 auto 16px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 12px; color: var(--muted); font-size: 13px;
+    }
+    .qr-placeholder-icon { font-size: 40px; }
+
+    /* WhatsApp Status */
+    .wa-status { display: flex; align-items: center; gap: 16px; padding: 16px; background: var(--card2); border-radius: 12px; margin-bottom: 16px; }
+    .wa-icon { font-size: 36px; }
+    .wa-info { flex: 1; }
+    .wa-name { font-size: 15px; font-weight: 600; }
+    .wa-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+    /* Notification Toast */
+    #toast {
+      position: fixed; bottom: 24px; right: 24px;
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 12px; padding: 14px 20px;
+      font-size: 14px; z-index: 9999;
+      transform: translateY(100px); opacity: 0;
+      transition: all 0.3s; max-width: 320px;
+    }
+    #toast.show { transform: translateY(0); opacity: 1; }
+    #toast.success { border-color: var(--green); color: var(--green); }
+    #toast.error { border-color: var(--red); color: var(--red); }
+
+    /* Connection animation */
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner { animation: spin 1s linear infinite; display: inline-block; }
+
+    /* Section pages */
+    .section { display: none; }
+    .section.active { display: block; }
+
+    /* Responsive */
+    @media (max-width: 900px) {
+      .sidebar { width: 60px; }
+      .sidebar .logo-name, .sidebar .logo-sub, .sidebar .nav-item span, .sidebar-bottom { display: none; }
+      .main { margin-left: 60px; padding: 20px; }
+      .stats-grid { grid-template-columns: 1fr 1fr; }
+      .two-col { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 600px) {
+      .stats-grid { grid-template-columns: 1fr 1fr; }
+    }
+
+    /* Steps Guide */
+    .step { display: flex; gap: 16px; padding: 16px 0; border-bottom: 1px solid var(--border); }
+    .step:last-child { border-bottom: none; }
+    .step-num {
+      width: 32px; height: 32px; border-radius: 50%;
+      background: rgba(37,211,102,0.15); color: var(--green);
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 14px; flex-shrink: 0;
+    }
+    .step-content { flex: 1; }
+    .step-title { font-size: 14px; font-weight: 600; }
+    .step-desc { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  </style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<nav class="sidebar">
+  <div class="logo">
+    <div class="logo-icon">🏠</div>
+    <div class="logo-name">নিবেদিকা ভিআইপি হোস্টেল</div>
+    <div class="logo-sub">WhatsApp এজেন্ট ড্যাশবোর্ড</div>
+  </div>
+  <div class="nav-item active" onclick="showSection('overview')">
+    <span class="nav-icon">📊</span><span>ওভারভিউ</span>
+  </div>
+  <div class="nav-item" onclick="showSection('whatsapp')">
+    <span class="nav-icon">💬</span><span>WhatsApp</span>
+  </div>
+  <div class="nav-item" onclick="showSection('gemini')">
+    <span class="nav-icon">🤖</span><span>Gemini AI</span>
+  </div>
+  <div class="nav-item" onclick="showSection('settings')">
+    <span class="nav-icon">⚙️</span><span>সেটিংস</span>
+  </div>
+  <div class="sidebar-bottom">
+    <div style="font-size:12px; color: var(--muted); display:flex; align-items:center;">
+      <span class="agent-status-dot online" id="sidebarDot"></span>
+      <span id="sidebarStatus">এজেন্ট চালু</span>
+    </div>
+  </div>
+</nav>
+
+<!-- Main Content -->
+<main class="main">
+
+  <!-- ===== OVERVIEW ===== -->
+  <div class="section active" id="section-overview">
+    <div class="page-header">
+      <div>
+        <div class="page-title">ড্যাশবোর্ড ওভারভিউ</div>
+        <div class="page-sub" id="lastUpdated">লোড হচ্ছে...</div>
+      </div>
+      <span class="badge online" id="mainStatusBadge"><span>●</span> চালু</span>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card green">
+        <div class="stat-icon">💬</div>
+        <div class="stat-value" id="msgCount">0</div>
+        <div class="stat-label">মোট মেসেজ</div>
+      </div>
+      <div class="stat-card blue">
+        <div class="stat-icon">⏱️</div>
+        <div class="stat-value" id="uptimeVal">0m</div>
+        <div class="stat-label">আপটাইম</div>
+      </div>
+      <div class="stat-card purple">
+        <div class="stat-icon">🤖</div>
+        <div class="stat-value" id="geminiStatus">বন্ধ</div>
+        <div class="stat-label">Gemini AI</div>
+      </div>
+      <div class="stat-card amber">
+        <div class="stat-icon">📱</div>
+        <div class="stat-value" id="waStatus">—</div>
+        <div class="stat-label">WhatsApp</div>
+      </div>
+    </div>
+
+    <div class="two-col">
+      <div class="card">
+        <div class="card-title">🔘 এজেন্ট নিয়ন্ত্রণ</div>
+        <div class="toggle-row">
+          <div class="toggle-info">
+            <div class="toggle-label">এজেন্ট চালু/বন্ধ</div>
+            <div class="toggle-desc">বন্ধ করলে WhatsApp মেসেজের উত্তর দেবে না</div>
+          </div>
+          <div class="toggle" id="agentToggle" onclick="toggleAgent()"></div>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-info">
+            <div class="toggle-label">Gemini AI</div>
+            <div class="toggle-desc">AI দিয়ে মানবিক উত্তর (API Key লাগবে)</div>
+          </div>
+          <div class="toggle" id="geminiToggle" onclick="toggleGemini()"></div>
+        </div>
+        <div style="margin-top: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
+          <button class="btn btn-danger" onclick="showSection('whatsapp')">🔗 WhatsApp পরিবর্তন</button>
+          <button class="btn btn-blue" onclick="showSection('gemini')">🤖 AI সেটআপ</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">📋 বুকিং গাইড (AI ধাপ)</div>
+        <div class="step">
+          <div class="step-num">১</div>
+          <div class="step-content">
+            <div class="step-title">আগ্রহ প্রকাশ</div>
+            <div class="step-desc">হোস্টেল সম্পর্কে জানতে চাওয়া</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">২</div>
+          <div class="step-content">
+            <div class="step-title">ছেলে/মেয়ে ও শাখা নির্বাচন</div>
+            <div class="step-desc">AI স্বয়ংক্রিয়ভাবে জিজ্ঞেস করবে</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">৩</div>
+          <div class="step-content">
+            <div class="step-title">রুম ও বাজেট নির্ধারণ</div>
+            <div class="step-desc">সিট টাইপ অনুযায়ী ভাড়া জানাবে</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">৪</div>
+          <div class="step-content">
+            <div class="step-title">পরিদর্শন ও ভর্তি</div>
+            <div class="step-desc">তারিখ ঠিক করে স্টাফকে forward করবে</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== WHATSAPP ===== -->
+  <div class="section" id="section-whatsapp">
+    <div class="page-header">
+      <div>
+        <div class="page-title">WhatsApp সংযোগ</div>
+        <div class="page-sub">QR স্ক্যান করুন, সংযোগ বিচ্ছিন্ন করুন বা নতুন নম্বর যোগ করুন</div>
+      </div>
+    </div>
+
+    <div class="two-col">
+      <div class="card">
+        <div class="card-title">📱 সংযোগের অবস্থা</div>
+        <div class="wa-status" id="waStatusCard">
+          <div class="wa-icon">📱</div>
+          <div class="wa-info">
+            <div class="wa-name" id="waStatusName">চেক করা হচ্ছে...</div>
+            <div class="wa-sub" id="waStatusSub">অনুগ্রহ করে অপেক্ষা করুন</div>
+          </div>
+          <span class="badge waiting" id="waBadge">⏳ লোডিং</span>
+        </div>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px;">
+          <button class="btn btn-danger" id="disconnectBtn" onclick="disconnectWhatsApp()">
+            🔌 সংযোগ বিচ্ছিন্ন করুন
+          </button>
+          <button class="btn btn-secondary" onclick="reconnectWhatsApp()">
+            🔄 পুনরায় সংযোগ
+          </button>
+        </div>
+        <div style="margin-top: 20px; padding: 14px; background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.3); border-radius: 10px; font-size: 13px; color: var(--amber);">
+          ⚠️ সংযোগ বিচ্ছিন্ন করলে নতুন QR Code আসবে — নতুন WhatsApp নম্বর দিয়ে স্ক্যান করুন।
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">📷 QR Code স্ক্যান</div>
+        <div class="qr-container">
+          <div id="qrDisplay">
+            <div class="qr-placeholder">
+              <span class="qr-placeholder-icon">📷</span>
+              <span>লোড হচ্ছে...</span>
+            </div>
+          </div>
+          <div id="qrInstructions" style="font-size: 13px; color: var(--muted); margin-top: 12px;">
+            WhatsApp খুলুন → ⋮ → Linked Devices → Link a Device
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== GEMINI AI ===== -->
+  <div class="section" id="section-gemini">
+    <div class="page-header">
+      <div>
+        <div class="page-title">🤖 Gemini AI সেটআপ</div>
+        <div class="page-sub">Google Gemini API দিয়ে মানবিক ও বুদ্ধিমান উত্তর</div>
+      </div>
+    </div>
+
+    <div class="two-col">
+      <div class="card">
+        <div class="card-title">🔑 API Key ব্যবস্থাপনা</div>
+        <div class="input-group">
+          <label class="input-label">Gemini API Key</label>
+          <div class="input-row">
+            <input type="password" class="input" id="geminiKeyInput" placeholder="AIzaSy... (Google AI Studio থেকে নিন)">
+          </div>
+          <div style="font-size: 12px; color: var(--muted); margin-top: 8px;" id="keyStatus">
+            কোনো Key সেট করা নেই
+          </div>
+        </div>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+          <button class="btn btn-primary" onclick="saveGeminiKey()">💾 Key সংরক্ষণ করুন</button>
+          <button class="btn btn-danger" onclick="deleteGeminiKey()">🗑️ Key মুছুন</button>
+        </div>
+        <div style="margin-top: 16px; padding: 14px; background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.3); border-radius: 10px; font-size: 13px; color: var(--blue);">
+          💡 Google AI Studio থেকে ফ্রি API Key নিন:<br>
+          <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color: var(--blue); font-weight: 600;">aistudio.google.com/app/apikey</a>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">⚙️ AI কনফিগারেশন</div>
+        <div class="toggle-row">
+          <div class="toggle-info">
+            <div class="toggle-label">Gemini AI চালু করুন</div>
+            <div class="toggle-desc">চালু থাকলে সব উত্তর AI দেবে</div>
+          </div>
+          <div class="toggle" id="geminiToggle2" onclick="toggleGemini()"></div>
+        </div>
+        <div style="margin-top: 20px; padding: 14px; background: rgba(139,92,246,0.1); border: 1px solid rgba(139,92,246,0.3); border-radius: 10px; font-size: 13px; color: var(--purple);">
+          🤖 <strong>Gemini চালু থাকলে:</strong><br><br>
+          ✅ মানুষের মতো কথোপকথন<br>
+          ✅ প্রসঙ্গ মনে রাখে (৫টা মেসেজ)<br>
+          ✅ ধাপে ধাপে বুকিং গাইড<br>
+          ✅ বাংলায় স্বাভাবিক ভাষা<br><br>
+          ⚠️ বন্ধ থাকলে: পূর্বের keyword সিস্টেম
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== SETTINGS ===== -->
+  <div class="section" id="section-settings">
+    <div class="page-header">
+      <div>
+        <div class="page-title">⚙️ সেটিংস</div>
+        <div class="page-sub">এজেন্টের কনফিগারেশন পরিবর্তন করুন</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">📞 মেইনটেন্যান্স স্টাফ নম্বর</div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+        <div class="input-group">
+          <label class="input-label">⚡ ইলেকট্রিশিয়ান</label>
+          <input type="text" class="input" id="c_electrician" placeholder="01XXXXXXXXX">
+        </div>
+        <div class="input-group">
+          <label class="input-label">💧 প্লাম্বার</label>
+          <input type="text" class="input" id="c_plumber" placeholder="01XXXXXXXXX">
+        </div>
+        <div class="input-group">
+          <label class="input-label">🍽️ কুক/রান্নাঘর</label>
+          <input type="text" class="input" id="c_cook" placeholder="01XXXXXXXXX">
+        </div>
+        <div class="input-group">
+          <label class="input-label">🧹 পরিষ্কার স্টাফ</label>
+          <input type="text" class="input" id="c_cleaner" placeholder="01XXXXXXXXX">
+        </div>
+        <div class="input-group">
+          <label class="input-label">🔒 সিকিউরিটি</label>
+          <input type="text" class="input" id="c_security" placeholder="01XXXXXXXXX">
+        </div>
+        <div class="input-group">
+          <label class="input-label">👤 ম্যানেজার</label>
+          <input type="text" class="input" id="c_manager" placeholder="01XXXXXXXXX">
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="saveContacts()">💾 নম্বর সংরক্ষণ</button>
+    </div>
+  </div>
+
+</main>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<script>
+  let ws;
+  let statusData = {};
+
+  // WebSocket সংযোগ
+  function connectWS() {
+    const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    ws = new WebSocket(`${proto}//${location.host}`);
+
+    ws.onmessage = (e) => {
+      const data = JSON.parse(e.data);
+      handleWSMessage(data);
+    };
+
+    ws.onclose = () => setTimeout(connectWS, 3000);
+    ws.onerror = () => ws.close();
+  }
+
+  function handleWSMessage(data) {
+    switch(data.type) {
+      case 'qr_updated':
+        showQR(data.qr);
+        break;
+      case 'ready':
+        updateWAStatus(true);
+        showQR(null, 'connected');
+        showToast('✅ WhatsApp সংযুক্ত হয়েছে!', 'success');
+        break;
+      case 'disconnected':
+      case 'auth_failure':
+        updateWAStatus(false);
+        break;
+      case 'agent_toggled':
+        updateToggle('agentToggle', data.agentEnabled);
+        break;
+      case 'settings_updated':
+        loadStatus();
+        break;
+      case 'message_received':
+        document.getElementById('msgCount').textContent = data.count;
+        break;
+    }
+  }
+
+  // Status লোড করো
+  async function loadStatus() {
+    try {
+      const res = await fetch('/api/status');
+      statusData = await res.json();
+      updateUI();
+    } catch(e) {}
+
+    try {
+      const res = await fetch('/api/settings');
+      const s = await res.json();
+      updateToggle('agentToggle', s.agentEnabled !== false);
+      updateToggle('geminiToggle', s.geminiEnabled);
+      updateToggle('geminiToggle2', s.geminiEnabled);
+      document.getElementById('geminiStatus').textContent = s.geminiEnabled ? '✅ চালু' : 'বন্ধ';
+      document.getElementById('keyStatus').textContent = s.hasGeminiKey ?
+        `✅ Key সেট: ${s.geminiKeyPreview}` : '❌ কোনো Key নেই';
+
+      if (s.maintenanceContacts) {
+        const c = s.maintenanceContacts;
+        ['electrician','plumber','cook','cleaner','security','manager'].forEach(k => {
+          const el = document.getElementById('c_' + k);
+          if (el && c[k]) el.value = c[k];
+        });
+      }
+    } catch(e) {}
+  }
+
+  function updateUI() {
+    const d = statusData;
+    document.getElementById('msgCount').textContent = d.messageCount || 0;
+    document.getElementById('uptimeVal').textContent = formatUptime(d.uptime || 0);
+    document.getElementById('lastUpdated').textContent = 'সর্বশেষ আপডেট: ' + new Date().toLocaleTimeString('bn-BD');
+
+    updateWAStatus(d.isReady);
+    updateToggle('agentToggle', d.agentEnabled !== false);
+
+    if (d.hasQR) loadQR();
+    else if (d.isReady) showQR(null, 'connected');
+  }
+
+  function updateWAStatus(connected) {
+    const badge = document.getElementById('waBadge');
+    const name = document.getElementById('waStatusName');
+    const sub = document.getElementById('waStatusSub');
+    const mainBadge = document.getElementById('mainStatusBadge');
+    const waStatEl = document.getElementById('waStatus');
+    const dot = document.getElementById('sidebarDot');
+    const sideStatus = document.getElementById('sidebarStatus');
+
+    if (connected) {
+      badge.className = 'badge online';
+      badge.textContent = '✅ সংযুক্ত';
+      name.textContent = 'WhatsApp সংযুক্ত';
+      sub.textContent = 'এজেন্ট মেসেজের জন্য প্রস্তুত';
+      mainBadge.className = 'badge online';
+      mainBadge.innerHTML = '<span>●</span> চালু';
+      waStatEl.textContent = 'সংযুক্ত';
+      dot.className = 'agent-status-dot online';
+      sideStatus.textContent = 'এজেন্ট চালু';
+    } else {
+      badge.className = 'badge offline';
+      badge.textContent = '❌ বিচ্ছিন্ন';
+      name.textContent = 'WhatsApp সংযুক্ত নয়';
+      sub.textContent = 'QR Code স্ক্যান করুন';
+      mainBadge.className = 'badge offline';
+      mainBadge.innerHTML = '<span>●</span> বিচ্ছিন্ন';
+      waStatEl.textContent = 'বিচ্ছিন্ন';
+      dot.className = 'agent-status-dot offline';
+      sideStatus.textContent = 'বিচ্ছিন্ন';
+    }
+  }
+
+  async function loadQR() {
+    try {
+      const res = await fetch('/api/qr');
+      const data = await res.json();
+      if (data.qr) showQR(data.qr);
+      else if (data.status === 'connected') showQR(null, 'connected');
+    } catch(e) {}
+  }
+
+  function showQR(qrData, status) {
+    const display = document.getElementById('qrDisplay');
+    if (status === 'connected') {
+      display.innerHTML = `
+        <div style="text-align:center; padding: 40px 20px;">
+          <div style="font-size: 64px; margin-bottom: 16px;">✅</div>
+          <div style="font-size: 18px; font-weight: 700; color: var(--green);">WhatsApp সংযুক্ত!</div>
+          <div style="font-size: 13px; color: var(--muted); margin-top: 8px;">এজেন্ট মেসেজের জন্য প্রস্তুত</div>
+        </div>`;
+    } else if (qrData) {
+      display.innerHTML = `<img src="${qrData}" class="qr-img" alt="WhatsApp QR">`;
+    } else {
+      display.innerHTML = `
+        <div class="qr-placeholder">
+          <span class="qr-placeholder-icon spinner">⚙️</span>
+          <span>QR Code লোড হচ্ছে...</span>
+        </div>`;
+    }
+  }
+
+  // Toggle functions
+  function updateToggle(id, state) {
+    const el = document.getElementById(id);
+    if (el) el.className = 'toggle' + (state ? ' on' : '');
+  }
+
+  async function toggleAgent() {
+    const res = await fetch('/api/agent/toggle', { method: 'POST' });
+    const data = await res.json();
+    updateToggle('agentToggle', data.agentEnabled);
+    showToast(data.agentEnabled ? '✅ এজেন্ট চালু করা হয়েছে' : '⏸️ এজেন্ট বন্ধ করা হয়েছে', 'success');
+  }
+
+  async function toggleGemini() {
+    const settings = await (await fetch('/api/settings')).json();
+    const newState = !settings.geminiEnabled;
+    if (newState && !settings.hasGeminiKey) {
+      showToast('⚠️ আগে Gemini API Key যোগ করুন!', 'error');
+      showSection('gemini');
+      return;
+    }
+    await fetch('/api/settings', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ geminiEnabled: newState }) });
+    updateToggle('geminiToggle', newState);
+    updateToggle('geminiToggle2', newState);
+    document.getElementById('geminiStatus').textContent = newState ? '✅ চালু' : 'বন্ধ';
+    showToast(newState ? '🤖 Gemini AI চালু হয়েছে!' : '⏸️ Gemini AI বন্ধ করা হয়েছে', 'success');
+  }
+
+  async function saveGeminiKey() {
+    const key = document.getElementById('geminiKeyInput').value.trim();
+    if (!key) { showToast('⚠️ API Key লিখুন!', 'error'); return; }
+    const res = await fetch('/api/settings', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ geminiApiKey: key, geminiEnabled: true })
+    });
+    const data = await res.json();
+    document.getElementById('geminiKeyInput').value = '';
+    document.getElementById('keyStatus').textContent = '✅ Key সেট করা হয়েছে!';
+    updateToggle('geminiToggle', true);
+    updateToggle('geminiToggle2', true);
+    document.getElementById('geminiStatus').textContent = '✅ চালু';
+    showToast('✅ Gemini API Key সংরক্ষিত ও চালু!', 'success');
+  }
+
+  async function deleteGeminiKey() {
+    if (!confirm('Gemini API Key মুছে দেবেন?')) return;
+    await fetch('/api/settings/gemini-key', { method: 'DELETE' });
+    document.getElementById('keyStatus').textContent = '❌ কোনো Key নেই';
+    updateToggle('geminiToggle', false);
+    updateToggle('geminiToggle2', false);
+    document.getElementById('geminiStatus').textContent = 'বন্ধ';
+    showToast('🗑️ API Key মুছে দেওয়া হয়েছে', 'success');
+  }
+
+  async function disconnectWhatsApp() {
+    if (!confirm('WhatsApp সংযোগ বিচ্ছিন্ন করবেন? নতুন QR আসবে।')) return;
+    const res = await fetch('/api/whatsapp/disconnect', { method: 'POST' });
+    const data = await res.json();
+    showToast(data.message, 'success');
+    showQR(null);
+    setTimeout(loadQR, 5000);
+  }
+
+  async function reconnectWhatsApp() {
+    const res = await fetch('/api/whatsapp/reconnect', { method: 'POST' });
+    const data = await res.json();
+    showToast(data.message, 'success');
+    showQR(null);
+    setTimeout(loadStatus, 5000);
+  }
+
+  async function saveContacts() {
+    const contacts = {};
+    ['electrician','plumber','cook','cleaner','security','manager'].forEach(k => {
+      const el = document.getElementById('c_' + k);
+      if (el) contacts[k] = el.value;
+    });
+    const s = await (await fetch('/api/settings')).json();
+    await fetch('/api/settings', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ maintenanceContacts: contacts })
+    });
+    showToast('✅ স্টাফের নম্বর সংরক্ষিত হয়েছে!', 'success');
+  }
+
+  // Navigation
+  function showSection(name) {
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    document.getElementById('section-' + name).classList.add('active');
+    const navItems = document.querySelectorAll('.nav-item');
+    const map = { overview: 0, whatsapp: 1, gemini: 2, settings: 3 };
+    navItems[map[name]]?.classList.add('active');
+
+    if (name === 'whatsapp') loadQR();
+  }
+
+  // Toast
+  function showToast(msg, type = 'success') {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = `show ${type}`;
+    setTimeout(() => t.className = '', 3500);
+  }
+
+  // Uptime formatter
+  function formatUptime(seconds) {
+    if (seconds < 60) return seconds + 's';
+    if (seconds < 3600) return Math.floor(seconds/60) + 'm';
+    return Math.floor(seconds/3600) + 'h ' + Math.floor((seconds%3600)/60) + 'm';
+  }
+
+  // Init
+  connectWS();
+  loadStatus();
+  setInterval(loadStatus, 15000);
+</script>
+</body>
+</html>

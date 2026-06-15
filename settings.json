@@ -1,0 +1,14 @@
+{
+  "geminiApiKey": "",
+  "geminiEnabled": false,
+  "agentEnabled": true,
+  "dashboardPassword": "nibedika2024",
+  "maintenanceContacts": {
+    "electrician": "01750523734",
+    "plumber": "01750523734",
+    "cook": "01750523734",
+    "cleaner": "01750523734",
+    "security": "01750523734",
+    "manager": "01750523734"
+  }
+}

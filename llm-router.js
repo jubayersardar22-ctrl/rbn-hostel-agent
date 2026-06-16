@@ -34,16 +34,28 @@ const SYSTEM_PROMPT = `তুমি "রুমি" — নিবেদিকা 
 
 // ===== Provider Detector =====
 function detectProvider() {
-  if (process.env.GEMINI_API_KEY) return 'gemini';
-  if (process.env.OPENAI_API_KEY) return 'openai';
-  if (process.env.CLAUDE_API_KEY) return 'claude';
-  // settings.json থেকে
   try {
     const fs = require('fs');
     const s = JSON.parse(fs.readFileSync('./settings.json', 'utf8'));
-    if (s.llmProvider && s.llmApiKey) return s.llmProvider;
-    if (s.geminiApiKey && s.geminiEnabled) return 'gemini';
+    // যদি AI বন্ধ থাকে, তবে কোনো প্রোভাইডার রিটার্ন করবে না
+    if (s.geminiEnabled === false) return null;
+    
+    if (s.llmProvider) {
+      const key = getApiKey(s.llmProvider);
+      if (key) return s.llmProvider;
+    }
+  } catch (e) {}
+
+  if (process.env.GEMINI_API_KEY) return 'gemini';
+  if (process.env.OPENAI_API_KEY) return 'openai';
+  if (process.env.CLAUDE_API_KEY) return 'claude';
+
+  try {
+    const fs = require('fs');
+    const s = JSON.parse(fs.readFileSync('./settings.json', 'utf8'));
+    if (s.geminiApiKey) return 'gemini';
   } catch {}
+
   return null;
 }
 
@@ -101,6 +113,11 @@ async function callGemini(apiKey, history, message) {
     }
   );
 
+  if (res && res.error) {
+    console.error('❌ Gemini API Error:', res.error.message || res.error);
+    return null;
+  }
+
   return res?.candidates?.[0]?.content?.parts?.[0]?.text || null;
 }
 
@@ -118,6 +135,11 @@ async function callOpenAI(apiKey, history, message) {
     { 'Authorization': `Bearer ${apiKey}` },
     { model: 'gpt-4o-mini', messages, max_tokens: 250, temperature: 0.9 }
   );
+
+  if (res && res.error) {
+    console.error('❌ OpenAI API Error:', res.error.message || res.error);
+    return null;
+  }
 
   return res?.choices?.[0]?.message?.content || null;
 }
@@ -140,6 +162,11 @@ async function callClaude(apiKey, history, message) {
       max_tokens: 250
     }
   );
+
+  if (res && res.error) {
+    console.error('❌ Claude API Error:', res.error.message || res.error);
+    return null;
+  }
 
   return res?.content?.[0]?.text || null;
 }

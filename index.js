@@ -102,7 +102,7 @@ app.get('/api/status', (req, res) => {
     isConnected,
     agentEnabled: settings.agentEnabled,
     geminiEnabled: settings.geminiEnabled,
-    hasGeminiKey: !!(settings.geminiApiKey),
+    hasGeminiKey: !!(settings.geminiApiKey || process.env.GEMINI_API_KEY || process.env.OPENAI_API_KEY || process.env.CLAUDE_API_KEY),
     messageCount,
     uptime: Math.floor((Date.now() - startTime) / 1000),
     startTime: startTime.toISOString(),
@@ -124,10 +124,14 @@ app.get('/api/qr', (req, res) => {
 // Settings GET
 app.get('/api/settings', (req, res) => {
   const s = getSettings();
+  // process.env থেকে LLM key আছে কিনা চেক করো (লোকাল + Railway উভয়)
+  const hasAnyLlmKey = !!(process.env.GEMINI_API_KEY || process.env.OPENAI_API_KEY || process.env.CLAUDE_API_KEY || s.geminiApiKey);
   res.json({
     geminiEnabled: s.geminiEnabled,
-    hasGeminiKey: !!(s.geminiApiKey),
-    geminiKeyPreview: s.geminiApiKey ? '****' + s.geminiApiKey.slice(-6) : '',
+    hasGeminiKey: hasAnyLlmKey,
+    geminiKeyPreview: process.env.GEMINI_API_KEY
+      ? '****' + process.env.GEMINI_API_KEY.slice(-6)
+      : (s.geminiApiKey ? '****' + s.geminiApiKey.slice(-6) : ''),
     agentEnabled: s.agentEnabled,
     maintenanceContacts: s.maintenanceContacts || {}
   });
@@ -136,11 +140,13 @@ app.get('/api/settings', (req, res) => {
 // Settings UPDATE
 app.post('/api/settings', (req, res) => {
   try {
-    const { agentEnabled, maintenanceContacts } = req.body;
+    const { agentEnabled, maintenanceContacts, geminiEnabled } = req.body;
     const update = {};
     if (agentEnabled !== undefined) update.agentEnabled = agentEnabled;
     if (maintenanceContacts !== undefined) update.maintenanceContacts = maintenanceContacts;
+    if (geminiEnabled !== undefined) update.geminiEnabled = geminiEnabled;
     saveSettings(update);
+    if (geminiEnabled) llm.refresh(); // AI চালু হলে LLM রিফ্রেশ করো
 
     broadcast({ type: 'settings_updated', ...getSettings() });
     res.json({ success: true, message: 'সেটিংস সংরক্ষিত হয়েছে!' });

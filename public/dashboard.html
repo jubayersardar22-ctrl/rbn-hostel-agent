@@ -925,11 +925,12 @@
     try {
       const res = await fetch('/api/llm/keys');
       const data = await res.json();
-      if (!data.hasToken) {
-        document.getElementById('keyStatus').textContent = '⚠️ Railway Token সেট করা নেই';
-      } else {
-        llmKeys = data.keys || {};
-        updateLlmUI();
+      llmKeys = data.keys || {};
+      updateLlmUI();
+      
+      // If there is no Railway Token and no key is set locally, show custom message
+      if (!data.hasToken && Object.keys(llmKeys).length === 0) {
+        document.getElementById('keyStatus').textContent = '⚠️ কোনো API Key বা Railway Token সেট করা নেই';
       }
     } catch(e) {}
   }
@@ -1053,11 +1054,25 @@
       showSection('gemini');
       return;
     }
-    await fetch('/api/settings', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ geminiEnabled: newState }) });
-    updateToggle('geminiToggle', newState);
-    updateToggle('geminiToggle2', newState);
-    document.getElementById('geminiStatus').textContent = newState ? '✅ চালু' : 'বন্ধ';
-    showToast(newState ? '🤖 AI চালু হয়েছে!' : '⏸️ AI বন্ধ করা হয়েছে', 'success');
+    
+    try {
+      const res = await fetch('/api/settings', { 
+        method: 'POST', 
+        headers: {'Content-Type':'application/json'}, 
+        body: JSON.stringify({ geminiEnabled: newState }) 
+      });
+      const data = await res.json();
+      if (data.success) {
+        updateToggle('geminiToggle', newState);
+        updateToggle('geminiToggle2', newState);
+        document.getElementById('geminiStatus').textContent = newState ? '✅ চালু' : 'বন্ধ';
+        showToast(newState ? '🤖 AI চালু হয়েছে!' : '⏸️ AI বন্ধ করা হয়েছে', 'success');
+      } else {
+        showToast('❌ সেটিংস সেভ করতে ব্যর্থ: ' + data.message, 'error');
+      }
+    } catch(e) {
+      showToast('❌ সেটিংস সেভ করতে সার্ভার সংযোগ ব্যর্থ হয়েছে!', 'error');
+    }
   }
 
   async function saveLlmKey() {

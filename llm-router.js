@@ -102,9 +102,9 @@ async function callGemini(apiKey, history, message) {
     { role: 'user', parts: [{ text: message }] }
   ];
 
-  const res = await httpsPost(
+  let res = await httpsPost(
     'generativelanguage.googleapis.com',
-    `/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+    `/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`,
     {},
     {
       systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
@@ -112,6 +112,22 @@ async function callGemini(apiKey, history, message) {
       generationConfig: { temperature: 0.9, maxOutputTokens: 150 }
     }
   );
+
+  // Fallback to older model if 1.5-flash is not supported by this API key
+  if (res && res.error && (res.error.message.includes('not found') || res.error.message.includes('not supported'))) {
+    console.log('⚠️ gemini-1.5-flash-latest failed, trying gemini-pro fallback...');
+    
+    // For gemini-pro fallback, inject system prompt into the first message
+    const fallbackContents = [...contents];
+    fallbackContents[0].parts[0].text = SYSTEM_PROMPT + '\n\n' + fallbackContents[0].parts[0].text;
+    
+    res = await httpsPost(
+      'generativelanguage.googleapis.com',
+      `/v1beta/models/gemini-pro:generateContent?key=${apiKey}`,
+      {},
+      { contents: fallbackContents, generationConfig: { temperature: 0.9, maxOutputTokens: 150 } }
+    );
+  }
 
   if (res && res.error) {
     const errorMsg = res.error.message || JSON.stringify(res.error);

@@ -97,45 +97,54 @@ function httpsPost(hostname, path, headers, body) {
 
 // ===== GEMINI =====
 async function callGemini(apiKey, history, message) {
-  const contents = [
-    ...history.slice(-8).map(h => ({ role: h.role, parts: [{ text: h.text }] })),
-    { role: 'user', parts: [{ text: message }] }
-  ];
-
-  let res = await httpsPost(
-    'generativelanguage.googleapis.com',
-    `/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`,
-    {},
-    {
-      systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
-      contents,
+  try {
+    const { GoogleGenerativeAI } = require("@google/generative-ai");
+    const genAI = new GoogleGenerativeAI(apiKey);
+    
+    // We try the standard gemini-1.5-flash first
+    let modelName = "gemini-1.5-flash";
+    let model = genAI.getGenerativeModel({
+      model: modelName,
+      systemInstruction: SYSTEM_PROMPT,
       generationConfig: { temperature: 0.9, maxOutputTokens: 150 }
+    });
+
+    const formattedHistory = history.slice(-8).map(h => ({
+      role: h.role === 'user' ? 'user' : 'model',
+      parts: [{ text: h.text }]
+    }));
+    
+    let chat = model.startChat({ history: formattedHistory });
+    
+    try {
+      const result = await chat.sendMessage(message);
+      return result.response.text();
+    } catch (apiErr) {
+      // If 1.5-flash is not found, fallback to gemini-pro
+      if (apiErr.message.includes('not found') || apiErr.message.includes('not supported')) {
+        console.log('⚠️ gemini-1.5-flash failed, trying gemini-pro fallback via SDK...');
+        model = genAI.getGenerativeModel({
+          model: "gemini-pro",
+          generationConfig: { temperature: 0.9, maxOutputTokens: 150 }
+        });
+        
+        // Prepend system prompt to the first history message or the current message
+        if (formattedHistory.length > 0) {
+          formattedHistory[0].parts[0].text = SYSTEM_PROMPT + '\n\n' + formattedHistory[0].parts[0].text;
+        } else {
+          message = SYSTEM_PROMPT + '\n\n' + message;
+        }
+        
+        chat = model.startChat({ history: formattedHistory });
+        const fallbackResult = await chat.sendMessage(message);
+        return fallbackResult.response.text();
+      }
+      throw apiErr; // rethrow if it's not a 'not found' error
     }
-  );
-
-  // Fallback to older model if 1.5-flash is not supported by this API key
-  if (res && res.error && (res.error.message.includes('not found') || res.error.message.includes('not supported'))) {
-    console.log('⚠️ gemini-1.5-flash-latest failed, trying gemini-pro fallback...');
-    
-    // For gemini-pro fallback, inject system prompt into the first message
-    const fallbackContents = [...contents];
-    fallbackContents[0].parts[0].text = SYSTEM_PROMPT + '\n\n' + fallbackContents[0].parts[0].text;
-    
-    res = await httpsPost(
-      'generativelanguage.googleapis.com',
-      `/v1beta/models/gemini-pro:generateContent?key=${apiKey}`,
-      {},
-      { contents: fallbackContents, generationConfig: { temperature: 0.9, maxOutputTokens: 150 } }
-    );
+  } catch (err) {
+    console.error('❌ Gemini SDK Error:', err.message);
+    return `⚠️ *AI Error:* ${err.message}\n\nআপনার API Key ভুল অথবা এই মডেলটি আপনার প্রজেক্টে সাপোর্ট করছে না। దয়া করে নতুন একটি API Key দিন।`;
   }
-
-  if (res && res.error) {
-    const errorMsg = res.error.message || JSON.stringify(res.error);
-    console.error('❌ Gemini API Error:', errorMsg);
-    return `⚠️ *AI Error:* ${errorMsg}\n\nআপনার API Key ভুল অথবা লিমিট শেষ হয়ে গেছে। দয়া করে সঠিক Key দিন।`;
-  }
-
-  return res?.candidates?.[0]?.content?.parts?.[0]?.text || null;
 }
 
 // ===== OPENAI / Compatible APIs =====

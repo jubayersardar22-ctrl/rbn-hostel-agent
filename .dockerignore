@@ -7,6 +7,4 @@ extracted_data.json
 bengali_content.txt
 *.log
 .env
-data/.wwebjs_auth
-data/.wwebjs_cache
-data/settings.json
+data/

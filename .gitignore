@@ -8,6 +8,4 @@ extract_data.js
 extract_detailed.js
 .env
 .env.deploy
-data/.wwebjs_auth
-data/.wwebjs_cache
-data/settings.json
+data/

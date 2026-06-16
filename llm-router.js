@@ -34,13 +34,15 @@ const SYSTEM_PROMPT = `তুমি "রুমি" — নিবেদিকা 
 
 // ===== Settings Helper =====
 const fs = require('fs');
+const path = require('path');
 function readSettingsSafe() {
   try {
-    if (fs.existsSync('./data/settings.json')) {
-      return JSON.parse(fs.readFileSync('./data/settings.json', 'utf8'));
-    }
-    if (fs.existsSync('./settings.json')) {
-      return JSON.parse(fs.readFileSync('./settings.json', 'utf8'));
+    const SETTINGS_PATH = fs.existsSync(path.join(__dirname, 'data', 'settings.json'))
+      ? path.join(__dirname, 'data', 'settings.json')
+      : path.join(__dirname, 'settings.json');
+      
+    if (fs.existsSync(SETTINGS_PATH)) {
+      return JSON.parse(fs.readFileSync(SETTINGS_PATH, 'utf8'));
     }
   } catch (e) {
     console.error('Error reading settings:', e.message);

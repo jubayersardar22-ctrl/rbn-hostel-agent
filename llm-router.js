@@ -133,30 +133,11 @@ async function callGemini(apiKey, history, message) {
       const result = await chat.sendMessage(message);
       return result.response.text();
     } catch (apiErr) {
-      // If 1.5-flash is not found, fallback to gemini-pro
-      if (apiErr.message.includes('not found') || apiErr.message.includes('not supported')) {
-        console.log('⚠️ gemini-1.5-flash failed, trying gemini-pro fallback via SDK...');
-        model = genAI.getGenerativeModel({
-          model: "gemini-pro",
-          generationConfig: { temperature: 0.9, maxOutputTokens: 150 }
-        });
-        
-        // Prepend system prompt to the first history message or the current message
-        if (formattedHistory.length > 0) {
-          formattedHistory[0].parts[0].text = SYSTEM_PROMPT + '\n\n' + formattedHistory[0].parts[0].text;
-        } else {
-          message = SYSTEM_PROMPT + '\n\n' + message;
-        }
-        
-        chat = model.startChat({ history: formattedHistory });
-        const fallbackResult = await chat.sendMessage(message);
-        return fallbackResult.response.text();
-      }
-      throw apiErr; // rethrow if it's not a 'not found' error
+      throw apiErr;
     }
   } catch (err) {
     console.error('❌ Gemini SDK Error:', err.message);
-    return `⚠️ *AI Error:* ${err.message}\n\nআপনার API Key ভুল অথবা এই মডেলটি আপনার প্রজেক্টে সাপোর্ট করছে না। దয়া করে নতুন একটি API Key দিন।`;
+    return `⚠️ *AI Error:* ${err.message}\n\nআপনার API Key ভুল অথবা এই মডেলটি আপনার প্রজেক্টে সাপোর্ট করছে না। দয়া করে নতুন একটি API Key দিন।`;
   }
 }
 

@@ -116,30 +116,45 @@ async function callGemini(apiKey, history, message) {
     const { GoogleGenerativeAI } = require("@google/generative-ai");
     const genAI = new GoogleGenerativeAI(apiKey);
     
-    // We try the standard gemini-1.5-flash first
-    let modelName = "gemini-1.5-flash";
-    let model = genAI.getGenerativeModel({
-      model: modelName,
-      systemInstruction: SYSTEM_PROMPT,
-      generationConfig: { temperature: 0.9, maxOutputTokens: 150 }
-    });
-
     const formattedHistory = history.slice(-8).map(h => ({
       role: h.role === 'user' ? 'user' : 'model',
       parts: [{ text: h.text }]
     }));
-    
-    let chat = model.startChat({ history: formattedHistory });
-    
-    try {
-      const result = await chat.sendMessage(message);
-      return result.response.text();
-    } catch (apiErr) {
-      throw apiErr;
+
+    const modelsToTry = [
+      'gemini-2.0-flash',
+      'gemini-1.5-flash-latest',
+      'gemini-1.5-flash',
+      'gemini-1.5-pro',
+      'gemini-1.0-pro',
+      'gemini-pro'
+    ];
+
+    let lastError = null;
+
+    for (const modelName of modelsToTry) {
+      try {
+        let model = genAI.getGenerativeModel({
+          model: modelName,
+          systemInstruction: SYSTEM_PROMPT,
+          generationConfig: { temperature: 0.9, maxOutputTokens: 150 }
+        });
+        
+        let chat = model.startChat({ history: formattedHistory });
+        const result = await chat.sendMessage(message);
+        return result.response.text();
+      } catch (err) {
+        lastError = err;
+        console.warn(`⚠️ Model ${modelName} failed: ${err.message}. Trying next...`);
+        // If it's not a 404 Not Found (e.g. invalid API key), we might want to throw,
+        // but it's safer to just try the next model.
+      }
     }
+
+    throw lastError; // If all models fail, throw the last error
   } catch (err) {
     console.error('❌ Gemini SDK Error:', err.message);
-    return `⚠️ *AI Error:* ${err.message}\n\nআপনার API Key ভুল অথবা এই মডেলটি আপনার প্রজেক্টে সাপোর্ট করছে না। দয়া করে নতুন একটি API Key দিন।`;
+    return `⚠️ *AI Error:* ${err.message}\n\nআপনার API Key ভুল অথবা এই মডেলগুলো আপনার প্রজেক্টে সাপোর্ট করছে না। দয়া করে Google AI Studio থেকে নতুন একটি API Key তৈরি করে দিন।`;
   }
 }
 

@@ -9,7 +9,8 @@ console.log('Env OPENAI_API_KEY:', process.env.OPENAI_API_KEY ? 'Present' : 'Not
 console.log('Env CLAUDE_API_KEY:', process.env.CLAUDE_API_KEY ? 'Present' : 'Not Set');
 
 try {
-  const s = JSON.parse(fs.readFileSync('./settings.json', 'utf8'));
+  const settingsPath = fs.existsSync('./data/settings.json') ? './data/settings.json' : './settings.json';
+  const s = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
   console.log('Settings.json content:');
   console.log('  geminiEnabled:', s.geminiEnabled);
   console.log('  geminiApiKey:', s.geminiApiKey ? 'Present (starts with ' + s.geminiApiKey.slice(0, 6) + '...)' : 'Not Set');

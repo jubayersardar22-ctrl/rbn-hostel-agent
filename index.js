@@ -23,7 +23,24 @@ const railwayVars = require('./railway-vars');
 
 
 // ===== Settings ম্যানেজার =====
-const SETTINGS_PATH = path.join(__dirname, 'settings.json');
+const DATA_DIR = path.join(__dirname, 'data');
+if (!fs.existsSync(DATA_DIR)) {
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+}
+
+const SETTINGS_PATH = path.join(DATA_DIR, 'settings.json');
+const DEFAULT_SETTINGS_PATH = path.join(__dirname, 'settings.json');
+
+// settings.json যদি data ফোল্ডারে না থাকে, তবে রুট থেকে কপি করো
+if (!fs.existsSync(SETTINGS_PATH) && fs.existsSync(DEFAULT_SETTINGS_PATH)) {
+  try {
+    fs.copyFileSync(DEFAULT_SETTINGS_PATH, SETTINGS_PATH);
+    console.log('✅ Default settings.json copied to data folder.');
+  } catch (err) {
+    console.error('Error copying default settings:', err.message);
+  }
+}
+
 function getSettings() {
   try { return JSON.parse(fs.readFileSync(SETTINGS_PATH, 'utf8')); }
   catch { return { agentEnabled: true, geminiEnabled: false, geminiApiKey: '', dashboardPassword: 'nibedika2024' }; }
@@ -388,7 +405,7 @@ app.post('/api/whatsapp/disconnect', async (req, res) => {
     }
 
     // Auth folder মুছে ফেলো
-    const authPath = path.join(__dirname, '.wwebjs_auth');
+    const authPath = path.join(__dirname, 'data', '.wwebjs_auth');
     if (fs.existsSync(authPath)) {
       fs.rmSync(authPath, { recursive: true, force: true });
     }
@@ -424,7 +441,7 @@ function initWhatsApp() {
   console.log('\n🔄 WhatsApp Client চালু হচ্ছে...');
 
   client = new Client({
-    authStrategy: new LocalAuth({ dataPath: path.join(__dirname, '.wwebjs_auth') }),
+    authStrategy: new LocalAuth({ dataPath: path.join(__dirname, 'data', '.wwebjs_auth') }),
     puppeteer: {
       headless: true,
       executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,

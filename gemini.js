@@ -8,7 +8,9 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
 const fs = require('fs');
 const path = require('path');
 
-const SETTINGS_PATH = path.join(__dirname, 'settings.json');
+const SETTINGS_PATH = fs.existsSync(path.join(__dirname, 'data', 'settings.json'))
+  ? path.join(__dirname, 'data', 'settings.json')
+  : path.join(__dirname, 'settings.json');
 const conversationHistory = new Map();
 
 // ===== মজাদার ও বন্ধুসুলভ সিস্টেম প্রম্পট =====

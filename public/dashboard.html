@@ -1046,8 +1046,9 @@
     const varMap = { 'gemini': 'GEMINI_API_KEY', 'openai': 'OPENAI_API_KEY', 'claude': 'CLAUDE_API_KEY' };
     const hasKey = !!llmKeys[varMap[provider]];
     
-    const settings = await (await fetch('/api/settings')).json();
-    const newState = !settings.geminiEnabled;
+    // UI state থেকে newState নির্ধারণ করো
+    const toggleEl = document.getElementById('geminiToggle2');
+    const newState = !toggleEl.classList.contains('on');
     
     if (newState && !hasKey) {
       showToast('⚠️ আগে API Key যোগ করুন!', 'error');

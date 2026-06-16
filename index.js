@@ -103,6 +103,7 @@ app.get('/api/status', (req, res) => {
     agentEnabled: settings.agentEnabled,
     geminiEnabled: settings.geminiEnabled,
     hasGeminiKey: !!(settings.geminiApiKey || process.env.GEMINI_API_KEY || process.env.OPENAI_API_KEY || process.env.CLAUDE_API_KEY),
+    llmReady: llm.isReady(),
     messageCount,
     uptime: Math.floor((Date.now() - startTime) / 1000),
     startTime: startTime.toISOString(),

@@ -1,6 +1,6 @@
 {
   "geminiApiKey": "",
-  "geminiEnabled": false,
+  "geminiEnabled": true,
   "agentEnabled": true,
   "dashboardPassword": "nibedika2024",
   "maintenanceContacts": {

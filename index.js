@@ -33,6 +33,34 @@ function saveSettings(data) {
   fs.writeFileSync(SETTINGS_PATH, JSON.stringify({ ...current, ...data }, null, 2));
 }
 
+// ===== Local .env ফাইল ম্যানেজার =====
+function updateLocalEnv(varName, value) {
+  const envPath = path.join(__dirname, '.env');
+  let content = '';
+  if (fs.existsSync(envPath)) {
+    content = fs.readFileSync(envPath, 'utf8');
+  }
+  const regex = new RegExp(`^${varName}=.*$`, 'm');
+  if (regex.test(content)) {
+    content = content.replace(regex, `${varName}=${value}`);
+  } else {
+    content = content.trim() + `\n${varName}=${value}\n`;
+  }
+  fs.writeFileSync(envPath, content, 'utf8');
+  process.env[varName] = value;
+}
+
+function removeLocalEnv(varName) {
+  const envPath = path.join(__dirname, '.env');
+  if (fs.existsSync(envPath)) {
+    let content = fs.readFileSync(envPath, 'utf8');
+    const regex = new RegExp(`^${varName}=.*$\\r?\\n?`, 'm');
+    content = content.replace(regex, '');
+    fs.writeFileSync(envPath, content, 'utf8');
+  }
+  delete process.env[varName];
+}
+
 // ===== State =====
 let currentQR = null;
 let qrImageDataUrl = null;
@@ -124,11 +152,28 @@ app.post('/api/settings', (req, res) => {
 // ===== LLM Management Routes =====
 app.get('/api/llm/keys', async (req, res) => {
   try {
-    if (!railwayVars.hasToken()) {
-      return res.json({ hasToken: false, keys: {} });
+    const keys = {};
+    const providers = ['GEMINI_API_KEY', 'OPENAI_API_KEY', 'CLAUDE_API_KEY'];
+    
+    // লোকাল env থেকে কীগুলো নাও (মাস্ক করে)
+    providers.forEach(k => {
+      if (process.env[k]) {
+        keys[k] = '****' + String(process.env[k]).slice(-6);
+      }
+    });
+    
+    // রেলওয়ে টোকেন থাকলে রেলওয়ে থেকেও ডেটা আনো
+    let hasToken = false;
+    if (railwayVars.hasToken()) {
+      hasToken = true;
+      try {
+        const rKeys = await railwayVars.getVariables();
+        Object.assign(keys, rKeys);
+      } catch (e) {
+        console.error('Railway fetch error:', e.message);
+      }
     }
-    const keys = await railwayVars.getVariables();
-    res.json({ hasToken: true, keys });
+    res.json({ hasToken, keys });
   } catch (e) {
     res.status(500).json({ success: false, message: e.message });
   }
@@ -145,11 +190,27 @@ app.post('/api/llm/key', async (req, res) => {
     const varName = varMap[provider];
     if (!varName) throw new Error('Unknown provider');
     
-    await railwayVars.setVariable(varName, key);
-    saveSettings({ llmProvider: provider, geminiEnabled: true });
-    setTimeout(() => llm.refresh(), 2000); // give railway time to update
+    // রেলওয়ে ক্লাউডে সেভ করো (যদি টোকেন থাকে)
+    let hasRailway = false;
+    if (railwayVars.hasToken()) {
+      try {
+        await railwayVars.setVariable(varName, key);
+        hasRailway = true;
+      } catch (err) {
+        console.error('Railway save error:', err.message);
+      }
+    }
     
-    res.json({ success: true, message: `${provider} API Key সংরক্ষিত হয়েছে! (Deployment trigger হয়েছে)` });
+    // লোকাল .env এবং প্রসেস মেমোরিতেও সবসময় সেভ করো (লোকাল রান সাপোর্টের জন্য)
+    updateLocalEnv(varName, key);
+    saveSettings({ llmProvider: provider, geminiEnabled: true });
+    llm.refresh();
+    
+    const msg = hasRailway 
+      ? `${provider} API Key ক্লাউড ও লোকালি সংরক্ষিত হয়েছে! (Deployment শুরু হয়েছে)`
+      : `${provider} API Key লোকাল এনভায়রনমেন্টে সংরক্ষিত হয়েছে!`;
+      
+    res.json({ success: true, message: msg });
   } catch (e) {
     res.status(500).json({ success: false, message: e.message });
   }
@@ -166,10 +227,131 @@ app.delete('/api/llm/key', async (req, res) => {
     const varName = varMap[provider];
     if (!varName) throw new Error('Unknown provider');
 
-    await railwayVars.deleteVariable(varName);
-    setTimeout(() => llm.refresh(), 2000);
+    // রেলওয়ে ক্লাউড থেকে ডিলিট করো (যদি টোকেন থাকে)
+    if (railwayVars.hasToken()) {
+      try {
+        await railwayVars.deleteVariable(varName);
+      } catch (err) {
+        console.error('Railway delete error:', err.message);
+      }
+    }
+    
+    // লোকাল .env এবং প্রসেস মেমোরি থেকে ডিলিট করো
+    removeLocalEnv(varName);
+    llm.refresh();
     
     res.json({ success: true, message: `${provider} API Key মুছে ফেলা হয়েছে!` });
+  } catch (e) {
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
+
+// ===== Live Chat ও মনিটরিং API এন্ডপয়েন্টস =====
+
+// সব সাম্প্রতিক চ্যাট লিস্ট পান
+app.get('/api/chats', async (req, res) => {
+  if (!isReady || !client) {
+    return res.json({ success: false, message: 'WhatsApp এখনও কানেক্টেড বা রেডি নয়।' });
+  }
+  try {
+    const chats = await client.getChats();
+    const settings = getSettings();
+    const mutedChats = settings.mutedChats || [];
+    
+    const formattedChats = await Promise.all(chats.slice(0, 40).map(async chat => {
+      let lastMessageText = '';
+      try {
+        const msgs = await chat.fetchMessages({ limit: 1 });
+        if (msgs.length > 0) {
+          lastMessageText = msgs[0].body;
+        }
+      } catch (err) {}
+      
+      return {
+        id: chat.id._serialized,
+        name: chat.name || chat.id.user,
+        unreadCount: chat.unreadCount,
+        timestamp: chat.timestamp,
+        isGroup: chat.isGroup,
+        lastMessage: lastMessageText,
+        isMuted: mutedChats.includes(chat.id._serialized)
+      };
+    }));
+    res.json({ success: true, chats: formattedChats });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// কোনো চ্যাটের মেসেজ হিস্ট্রি পান
+app.get('/api/chats/:chatId/messages', async (req, res) => {
+  if (!isReady || !client) {
+    return res.status(503).json({ success: false, message: 'WhatsApp client ready নয়।' });
+  }
+  try {
+    const { chatId } = req.params;
+    const chat = await client.getChatById(chatId);
+    const messages = await chat.fetchMessages({ limit: 50 });
+    
+    const formattedMessages = messages.map(msg => ({
+      id: msg.id._serialized,
+      fromMe: msg.fromMe,
+      body: msg.body,
+      timestamp: msg.timestamp,
+      sender: msg.fromMe ? 'Me' : (chat.name || chatId.split('@')[0])
+    }));
+    res.json({ success: true, messages: formattedMessages });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// মেসেজ পাঠান
+app.post('/api/chats/send', async (req, res) => {
+  if (!isReady || !client) {
+    return res.status(503).json({ success: false, message: 'WhatsApp client ready নয়।' });
+  }
+  try {
+    const { chatId, message } = req.body;
+    if (!chatId || !message) {
+      return res.status(400).json({ success: false, message: 'chatId এবং message প্রোভাইড করতে হবে।' });
+    }
+    const sentMsg = await client.sendMessage(chatId, message);
+    res.json({ 
+      success: true, 
+      message: 'মেসেজ পাঠানো হয়েছে', 
+      sentMessage: {
+        id: sentMsg.id._serialized,
+        fromMe: sentMsg.fromMe,
+        body: sentMsg.body,
+        timestamp: sentMsg.timestamp,
+        sender: 'Me'
+      } 
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// চ্যাটের AI অটো-রিপ্লাই টগল (মিউট/আনমিউট)
+app.post('/api/chats/:chatId/toggle-mute', (req, res) => {
+  try {
+    const { chatId } = req.params;
+    const settings = getSettings();
+    let mutedChats = settings.mutedChats || [];
+    const index = mutedChats.indexOf(chatId);
+    let isMuted = false;
+    
+    if (index > -1) {
+      mutedChats.splice(index, 1);
+    } else {
+      mutedChats.push(chatId);
+      isMuted = true;
+    }
+    
+    saveSettings({ mutedChats });
+    broadcast({ type: 'chat_mute_toggled', chatId, isMuted });
+    res.json({ success: true, isMuted });
   } catch (e) {
     res.status(500).json({ success: false, message: e.message });
   }
@@ -289,12 +471,40 @@ function initWhatsApp() {
     broadcast({ type: 'ready', message: 'WhatsApp এজেন্ট চালু হয়েছে!' });
   });
 
+  // Message Create (ইনকামিং এবং আউটগোয়িং মেসেজ লাইভ ব্রডকাস্ট)
+  client.on('message_create', async (msg) => {
+    try {
+      if (msg.from === 'status@broadcast' || msg.isGroupMsg) return;
+      
+      broadcast({
+        type: 'chat_message',
+        chatId: msg.fromMe ? msg.to : msg.from,
+        message: {
+          id: msg.id._serialized,
+          fromMe: msg.fromMe,
+          body: msg.body,
+          timestamp: msg.timestamp,
+          sender: msg.fromMe ? 'Me' : (msg.author || msg.from)
+        }
+      });
+    } catch (e) {
+      console.error('message_create broadcast error:', e.message);
+    }
+  });
+
   // Message
   client.on('message', async (msg) => {
     try {
       if (msg.isGroupMsg || msg.from === 'status@broadcast') return;
       const settings = getSettings();
       if (!settings.agentEnabled) return;
+
+      // যদি এই নির্দিষ্ট চ্যাটটি অ্যাডমিন মিউট করে থাকে, তবে অটো-রিপ্লাই করবে না
+      const isMutedForChat = settings.mutedChats && settings.mutedChats.includes(msg.from);
+      if (isMutedForChat) {
+        console.log(`🔇 Chat ${msg.from} is muted. Auto-reply skipped.`);
+        return;
+      }
 
       const body = msg.body ? msg.body.trim() : '';
       if (!body) return;

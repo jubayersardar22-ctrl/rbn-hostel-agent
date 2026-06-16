@@ -226,6 +226,264 @@
     .step-content { flex: 1; }
     .step-title { font-size: 14px; font-weight: 600; }
     .step-desc { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+    /* Live Chat Custom Styles */
+    .chat-container {
+      display: flex;
+      height: calc(100vh - 160px);
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+      margin-top: 10px;
+    }
+    .chat-sidebar {
+      width: 320px;
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      background: var(--card);
+      flex-shrink: 0;
+    }
+    .chat-search {
+      padding: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    .chat-list {
+      flex: 1;
+      overflow-y: auto;
+    }
+    .chat-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 16px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+      cursor: pointer;
+      transition: background 0.2s;
+      position: relative;
+    }
+    .chat-item:hover {
+      background: rgba(255, 255, 255, 0.02);
+    }
+    .chat-item.active {
+      background: rgba(37, 211, 102, 0.06);
+      border-left: 3px solid var(--green);
+    }
+    .chat-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: var(--card2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      border: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .chat-info {
+      flex: 1;
+      min-width: 0;
+    }
+    .chat-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 4px;
+    }
+    .chat-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .chat-time {
+      font-size: 10px;
+      color: var(--muted);
+    }
+    .chat-lastmsg {
+      font-size: 11px;
+      color: var(--muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .chat-badge {
+      background: var(--green);
+      color: #000;
+      font-size: 9px;
+      font-weight: 700;
+      padding: 1px 5px;
+      border-radius: 8px;
+    }
+    .chat-muted-indicator {
+      font-size: 12px;
+      margin-left: 6px;
+      color: var(--muted);
+    }
+    
+    .chat-window {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: var(--card2);
+      position: relative;
+    }
+    .chat-window-header {
+      padding: 16px 24px;
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .chat-window-user {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .chat-window-name {
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .chat-window-status {
+      font-size: 11px;
+      color: var(--green);
+    }
+    .chat-window-status.muted {
+      color: var(--muted);
+    }
+    
+    .chat-messages {
+      flex: 1;
+      padding: 24px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      background: #0b0d12;
+    }
+    .message-bubble {
+      max-width: 70%;
+      padding: 10px 14px;
+      border-radius: 12px;
+      font-size: 13px;
+      line-height: 1.45;
+      position: relative;
+      word-break: break-word;
+    }
+    .message-bubble.incoming {
+      background: var(--card);
+      color: var(--text);
+      align-self: flex-start;
+      border-bottom-left-radius: 2px;
+      border: 1px solid var(--border);
+    }
+    .message-bubble.outgoing {
+      background: var(--deeper);
+      color: #e8eaf0;
+      align-self: flex-end;
+      border-bottom-right-radius: 2px;
+    }
+    .message-time {
+      font-size: 9px;
+      color: var(--muted);
+      margin-top: 4px;
+      text-align: right;
+    }
+    .message-bubble.outgoing .message-time {
+      color: rgba(255, 255, 255, 0.5);
+    }
+    
+    .chat-input-area {
+      padding: 12px 20px;
+      background: var(--card);
+      border-top: 1px solid var(--border);
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    .chat-input {
+      flex: 1;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 10px 16px;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 13px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .chat-input:focus {
+      border-color: var(--green);
+    }
+    .btn-send {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: var(--green);
+      color: #000;
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 16px;
+      transition: all 0.2s;
+      flex-shrink: 0;
+    }
+    .btn-send:hover {
+      background: #20c05a;
+      transform: scale(1.05);
+    }
+    
+    .chat-placeholder {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: var(--muted);
+      gap: 12px;
+      text-align: center;
+      padding: 20px;
+    }
+    .chat-placeholder-icon {
+      font-size: 48px;
+    }
+
+    /* Small Toggle */
+    .toggle-sm {
+      position: relative; width: 44px; height: 24px;
+      background: var(--border); border-radius: 12px; cursor: pointer;
+      transition: background 0.3s; flex-shrink: 0;
+    }
+    .toggle-sm.on { background: var(--green); }
+    .toggle-sm::after {
+      content: ''; position: absolute;
+      width: 18px; height: 18px; border-radius: 50%;
+      background: white; top: 3px; left: 3px;
+      transition: transform 0.3s;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    }
+    .toggle-sm.on::after { transform: translateX(20px); }
+
+    @media (max-width: 768px) {
+      .chat-container {
+        flex-direction: column;
+        height: calc(100vh - 180px);
+      }
+      .chat-sidebar {
+        width: 100%;
+        height: 180px;
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+      }
+    }
   </style>
 </head>
 <body>
@@ -235,13 +493,16 @@
   <div class="logo">
     <div class="logo-icon">🏠</div>
     <div class="logo-name">নিবেদিকা ভিআইপি হোস্টেল</div>
-    <div class="logo-sub">WhatsApp এজেন্ট ড্যাশবোর্ড</div>
+    <div class="logo-sub">WhatsApp ড্যাশবোর্ড</div>
   </div>
   <div class="nav-item active" onclick="showSection('overview')">
     <span class="nav-icon">📊</span><span>ওভারভিউ</span>
   </div>
+  <div class="nav-item" onclick="showSection('livechat')">
+    <span class="nav-icon">💬</span><span>লাইভ চ্যাট</span>
+  </div>
   <div class="nav-item" onclick="showSection('whatsapp')">
-    <span class="nav-icon">💬</span><span>WhatsApp</span>
+    <span class="nav-icon">🔌</span><span>WhatsApp সংযোগ</span>
   </div>
   <div class="nav-item" onclick="showSection('gemini')">
     <span class="nav-icon">🤖</span><span>AI সহকারী</span>
@@ -344,6 +605,69 @@
           <div class="step-content">
             <div class="step-title">পরিদর্শন ও ভর্তি</div>
             <div class="step-desc">তারিখ ঠিক করে স্টাফকে forward করবে</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== LIVE CHAT ===== -->
+  <div class="section" id="section-livechat">
+    <div class="page-header">
+      <div>
+        <div class="page-title">💬 লাইভ চ্যাট ও মনিটরিং</div>
+        <div class="page-sub">রিয়েল-টাইমে কাস্টমার চ্যাট মনিটর করুন এবং রিপ্লাই দিন</div>
+      </div>
+    </div>
+
+    <div class="chat-container">
+      <!-- Chat Sidebar -->
+      <div class="chat-sidebar">
+        <div class="chat-search">
+          <input type="text" class="input" id="chatSearchInput" placeholder="নাম বা নম্বর খুঁজুন..." oninput="filterChats()">
+        </div>
+        <div class="chat-list" id="chatListContainer">
+          <div style="text-align: center; padding: 30px; color: var(--muted);">
+            <div class="spinner" style="font-size: 24px; margin-bottom: 8px;">⚙️</div>
+            <div>চ্যাট লোড হচ্ছে...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Chat Window -->
+      <div class="chat-window" id="chatWindow">
+        <div class="chat-placeholder" id="chatPlaceholder">
+          <span class="chat-placeholder-icon">💬</span>
+          <div style="font-size: 15px; font-weight: 600;">একটি চ্যাট নির্বাচন করুন</div>
+          <div style="font-size: 12px; color: var(--muted); margin-top: 4px;">বাম পাশের তালিকা থেকে যেকোনো কাস্টমার সিলেক্ট করে চ্যাট শুরু করুন</div>
+        </div>
+        
+        <div id="chatActiveArea" style="display: none; flex: 1; flex-direction: column;">
+          <!-- Chat Header -->
+          <div class="chat-window-header">
+            <div class="chat-window-user">
+              <div class="chat-avatar" id="activeChatAvatar">👤</div>
+              <div>
+                <div class="chat-window-name" id="activeChatName">কাস্টমার</div>
+                <div class="chat-window-status" id="activeChatStatus">Active</div>
+              </div>
+            </div>
+            <!-- AI Auto reply Toggle -->
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 11px; color: var(--muted);">AI Auto-reply</span>
+              <div class="toggle-sm" id="activeChatMuteToggle" onclick="toggleActiveChatMute()"></div>
+            </div>
+          </div>
+          
+          <!-- Messages Box -->
+          <div class="chat-messages" id="chatMessagesContainer">
+            <!-- Messages will be loaded here dynamically -->
+          </div>
+          
+          <!-- Input Area -->
+          <div class="chat-input-area">
+            <input type="text" class="chat-input" id="chatMessageInput" placeholder="আপনার মেসেজ লিখুন..." onkeydown="handleChatInputKey(event)">
+            <button class="btn-send" onclick="sendChatMessage()">➔</button>
           </div>
         </div>
       </div>
@@ -548,6 +872,22 @@
         break;
       case 'message_received':
         document.getElementById('msgCount').textContent = data.count;
+        break;
+      case 'chat_message':
+        if (activeChatId === data.chatId) {
+          appendMessage(data.message);
+        }
+        updateChatListWithNewMessage(data.chatId, data.message);
+        break;
+      case 'chat_mute_toggled':
+        if (activeChatId === data.chatId) {
+          updateMuteToggleUI(data.isMuted);
+        }
+        const targetChat = chats.find(c => c.id === data.chatId);
+        if (targetChat) {
+          targetChat.isMuted = data.isMuted;
+          renderChats();
+        }
         break;
     }
   }
@@ -798,10 +1138,285 @@
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
     document.getElementById('section-' + name).classList.add('active');
     const navItems = document.querySelectorAll('.nav-item');
-    const map = { overview: 0, whatsapp: 1, gemini: 2, settings: 3 };
+    const map = { overview: 0, livechat: 1, whatsapp: 2, gemini: 3, settings: 4 };
     navItems[map[name]]?.classList.add('active');
 
     if (name === 'whatsapp') loadQR();
+    if (name === 'livechat') loadChats();
+  }
+
+  // ===== Live Chat Logic =====
+  let chats = [];
+  let activeChatId = null;
+
+  async function loadChats() {
+    try {
+      const res = await fetch('/api/chats');
+      const data = await res.json();
+      if (data.success) {
+        chats = data.chats || [];
+        renderChats();
+      } else {
+        document.getElementById('chatListContainer').innerHTML = `
+          <div style="text-align: center; padding: 20px; color: var(--red);">
+            ${data.message || 'চ্যাট লোড করা যায়নি।'}
+          </div>`;
+      }
+    } catch (e) {
+      document.getElementById('chatListContainer').innerHTML = `
+        <div style="text-align: center; padding: 20px; color: var(--red);">
+          সার্ভার কানেকশন ত্রুটি!
+        </div>`;
+    }
+  }
+
+  function renderChats() {
+    const container = document.getElementById('chatListContainer');
+    const searchVal = document.getElementById('chatSearchInput').value.toLowerCase();
+    
+    const filtered = chats.filter(c => 
+      c.name.toLowerCase().includes(searchVal) || 
+      c.id.toLowerCase().includes(searchVal)
+    );
+
+    if (filtered.length === 0) {
+      container.innerHTML = `
+        <div style="text-align: center; padding: 20px; color: var(--muted); font-size: 13px;">
+          কোনো চ্যাট পাওয়া যায়নি
+        </div>`;
+      return;
+    }
+
+    container.innerHTML = '';
+    filtered.forEach(chat => {
+      const isSelected = chat.id === activeChatId;
+      const unreadBadge = chat.unreadCount > 0 ? `<span class="chat-badge">${chat.unreadCount}</span>` : '';
+      const muteIcon = chat.isMuted ? `<span class="chat-muted-indicator" title="AI Auto-reply বন্ধ">🔇</span>` : '';
+      const lastMsgText = chat.lastMessage || 'মেসেজ নেই';
+      const timeStr = formatChatTime(chat.timestamp);
+      
+      const item = document.createElement('div');
+      item.className = `chat-item ${isSelected ? 'active' : ''}`;
+      item.onclick = () => selectChat(chat.id, chat.name);
+      
+      item.innerHTML = `
+        <div class="chat-avatar">${chat.name.charAt(0)}</div>
+        <div class="chat-info">
+          <div class="chat-meta">
+            <div class="chat-name">${escapeHTML(chat.name)}</div>
+            <div class="chat-time">${timeStr}</div>
+          </div>
+          <div class="chat-meta" style="margin-top: 2px;">
+            <div class="chat-lastmsg">${escapeHTML(lastMsgText)}</div>
+            <div style="display: flex; align-items: center;">
+              ${muteIcon}
+              ${unreadBadge}
+            </div>
+          </div>
+        </div>
+      `;
+      container.appendChild(item);
+    });
+  }
+
+  async function selectChat(chatId, chatName) {
+    activeChatId = chatId;
+    
+    // UI আপডেট
+    document.querySelectorAll('.chat-item').forEach(el => el.classList.remove('active'));
+    document.getElementById('chatPlaceholder').style.display = 'none';
+    document.getElementById('chatActiveArea').style.display = 'flex';
+    
+    document.getElementById('activeChatName').textContent = chatName;
+    document.getElementById('activeChatAvatar').textContent = chatName.charAt(0);
+    
+    const messagesContainer = document.getElementById('chatMessagesContainer');
+    messagesContainer.innerHTML = `
+      <div style="text-align: center; padding: 40px; color: var(--muted);">
+        <div class="spinner" style="font-size: 24px; margin-bottom: 8px;">⚙️</div>
+        <div>মেসেজ হিস্ট্রি লোড হচ্ছে...</div>
+      </div>`;
+      
+    // চ্যাট অবজেক্ট থেকে AI মিউট অবস্থা আপডেট
+    const chat = chats.find(c => c.id === chatId);
+    if (chat) {
+      updateMuteToggleUI(chat.isMuted);
+      chat.unreadCount = 0;
+      renderChats();
+    }
+    
+    try {
+      const res = await fetch(`/api/chats/${encodeURIComponent(chatId)}/messages`);
+      const data = await res.json();
+      if (data.success) {
+        renderMessages(data.messages || []);
+      } else {
+        messagesContainer.innerHTML = `<div style="padding: 20px; color: var(--red); text-align: center;">${data.message}</div>`;
+      }
+    } catch (e) {
+      messagesContainer.innerHTML = `<div style="padding: 20px; color: var(--red); text-align: center;">মেসেজ লোড করতে ত্রুটি হয়েছে।</div>`;
+    }
+  }
+
+  function renderMessages(messages) {
+    const container = document.getElementById('chatMessagesContainer');
+    container.innerHTML = '';
+    
+    if (messages.length === 0) {
+      container.innerHTML = `<div style="text-align: center; padding: 40px; color: var(--muted); font-size: 13px;">কোনো পূর্ববর্তী মেসেজ নেই</div>`;
+      return;
+    }
+    
+    messages.forEach(msg => {
+      const bubble = document.createElement('div');
+      bubble.className = `message-bubble ${msg.fromMe ? 'outgoing' : 'incoming'}`;
+      const timeStr = formatMessageTime(msg.timestamp);
+      
+      bubble.innerHTML = `
+        <div>${escapeHTML(msg.body)}</div>
+        <div class="message-time">${timeStr}</div>
+      `;
+      container.appendChild(bubble);
+    });
+    
+    container.scrollTop = container.scrollHeight;
+  }
+
+  async function sendChatMessage() {
+    const input = document.getElementById('chatMessageInput');
+    const text = input.value.trim();
+    if (!text || !activeChatId) return;
+    
+    input.value = '';
+    
+    // UI-তে ইনস্ট্যান্টলি মেসেজটি অ্যাড করো
+    appendMessage({
+      fromMe: true,
+      body: text,
+      timestamp: Math.floor(Date.now() / 1000)
+    });
+    
+    try {
+      const res = await fetch('/api/chats/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chatId: activeChatId, message: text })
+      });
+      const data = await res.json();
+      if (!data.success) {
+        showToast('❌ মেসেজ পাঠানো যায়নি: ' + data.message, 'error');
+      } else {
+        updateChatListWithNewMessage(activeChatId, data.sentMessage);
+      }
+    } catch (e) {
+      showToast('❌ serveur error!', 'error');
+    }
+  }
+
+  async function toggleActiveChatMute() {
+    if (!activeChatId) return;
+    try {
+      const res = await fetch(`/api/chats/${encodeURIComponent(activeChatId)}/toggle-mute`, {
+        method: 'POST'
+      });
+      const data = await res.json();
+      if (data.success) {
+        updateMuteToggleUI(data.isMuted);
+        showToast(data.isMuted ? '🔇 AI Auto-reply বন্ধ করা হয়েছে' : '🤖 AI Auto-reply চালু করা হয়েছে', 'success');
+        
+        const chat = chats.find(c => c.id === activeChatId);
+        if (chat) {
+          chat.isMuted = data.isMuted;
+          renderChats();
+        }
+      }
+    } catch (e) {
+      showToast('❌ অপারেশন ব্যর্থ হয়েছে', 'error');
+    }
+  }
+
+  function updateMuteToggleUI(isMuted) {
+    const el = document.getElementById('activeChatMuteToggle');
+    const statusEl = document.getElementById('activeChatStatus');
+    if (el) {
+      if (isMuted) {
+        el.classList.add('on');
+        statusEl.textContent = 'AI বন্ধ (অ্যাডমিন সক্রিয়)';
+        statusEl.className = 'chat-window-status muted';
+      } else {
+        el.classList.remove('on');
+        statusEl.textContent = 'AI সক্রিয়';
+        statusEl.className = 'chat-window-status';
+      }
+    }
+  }
+
+  function appendMessage(msg) {
+    const container = document.getElementById('chatMessagesContainer');
+    if (container.querySelector('div[style*="text-align: center"]')) {
+      container.innerHTML = '';
+    }
+    
+    const bubble = document.createElement('div');
+    bubble.className = `message-bubble ${msg.fromMe ? 'outgoing' : 'incoming'}`;
+    const timeStr = formatMessageTime(msg.timestamp);
+    
+    bubble.innerHTML = `
+      <div>${escapeHTML(msg.body)}</div>
+      <div class="message-time">${timeStr}</div>
+    `;
+    container.appendChild(bubble);
+    container.scrollTop = container.scrollHeight;
+  }
+
+  function updateChatListWithNewMessage(chatId, msg) {
+    let chat = chats.find(c => c.id === chatId);
+    if (chat) {
+      chat.lastMessage = msg.body;
+      chat.timestamp = msg.timestamp;
+      if (!msg.fromMe && activeChatId !== chatId) {
+        chat.unreadCount = (chat.unreadCount || 0) + 1;
+      }
+    } else {
+      loadChats();
+      return;
+    }
+    chats.sort((a, b) => b.timestamp - a.timestamp);
+    renderChats();
+  }
+
+  function handleChatInputKey(e) {
+    if (e.key === 'Enter') {
+      sendChatMessage();
+    }
+  }
+
+  function filterChats() {
+    renderChats();
+  }
+
+  function formatChatTime(timestamp) {
+    if (!timestamp) return '';
+    const date = new Date(timestamp * 1000);
+    const now = new Date();
+    
+    if (date.toDateString() === now.toDateString()) {
+      return date.toLocaleTimeString('bn-BD', { hour: '2-digit', minute: '2-digit', hour12: true });
+    }
+    return date.toLocaleDateString('bn-BD', { month: 'short', day: 'numeric' });
+  }
+
+  function formatMessageTime(timestamp) {
+    if (!timestamp) return '';
+    const date = new Date(timestamp * 1000);
+    return date.toLocaleTimeString('bn-BD', { hour: '2-digit', minute: '2-digit', hour12: true });
+  }
+
+  function escapeHTML(str) {
+    if (!str) return '';
+    return str.replace(/[&<>'"]/g, 
+      tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
+    );
   }
 
   // Toast

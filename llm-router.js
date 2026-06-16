@@ -114,8 +114,9 @@ async function callGemini(apiKey, history, message) {
   );
 
   if (res && res.error) {
-    console.error('❌ Gemini API Error:', res.error.message || res.error);
-    return null;
+    const errorMsg = res.error.message || JSON.stringify(res.error);
+    console.error('❌ Gemini API Error:', errorMsg);
+    return `⚠️ *AI Error:* ${errorMsg}\n\nআপনার API Key ভুল অথবা লিমিট শেষ হয়ে গেছে। দয়া করে সঠিক Key দিন।`;
   }
 
   return res?.candidates?.[0]?.content?.parts?.[0]?.text || null;

@@ -528,7 +528,12 @@ function initWhatsApp() {
 
       // ===== LLM (Gemini/OpenAI/Claude) দিয়ে উত্তর =====
       // প্রথমে LLM চেষ্টা করো — না পারলে knowledge base fallback
-      if (llm.isReady()) {
+      if (settings.geminiEnabled) {
+        if (!llm.isReady()) {
+          await msg.reply('⚠️ *সিস্টেম এলার্ট:*\nAI সহকারী চালু করা আছে, কিন্তু কোনো API Key খুঁজে পাওয়া যায়নি! দয়া করে ড্যাশবোর্ডে গিয়ে সঠিক API Key দিন।');
+          return;
+        }
+        
         const aiReply = await llm.reply(msg.from, body);
         if (aiReply) {
           await msg.reply(aiReply);

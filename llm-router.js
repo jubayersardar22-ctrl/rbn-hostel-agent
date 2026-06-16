@@ -107,7 +107,7 @@ async function callGemini(apiKey, history, message) {
     `/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
     {},
     {
-      system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
+      systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
       contents,
       generationConfig: { temperature: 0.9, maxOutputTokens: 150 }
     }

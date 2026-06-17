@@ -440,6 +440,17 @@ app.post('/api/whatsapp/reconnect', async (req, res) => {
 function initWhatsApp() {
   console.log('\n🔄 WhatsApp Client চালু হচ্ছে...');
 
+  // Puppeteer SingletonLock Clean up (for Railway Persistent Volume)
+  // If the container restarts, Puppeteer might leave a lock file which causes it to reject the persisted session.
+  const sessionDir = path.join(__dirname, 'data', '.wwebjs_auth', 'session');
+  const lockFiles = ['SingletonLock', 'SingletonCookie', 'SingletonSocket'];
+  for (const file of lockFiles) {
+    const lockPath = path.join(sessionDir, file);
+    if (fs.existsSync(lockPath)) {
+      try { fs.unlinkSync(lockPath); console.log(`🗑️ Removed stale lock: ${file}`); } catch (e) {}
+    }
+  }
+
   client = new Client({
     authStrategy: new LocalAuth({ dataPath: path.join(__dirname, 'data', '.wwebjs_auth') }),
     puppeteer: {

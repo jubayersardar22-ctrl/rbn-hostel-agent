@@ -188,9 +188,7 @@ async function callGemini(apiKey, history, message) {
     throw lastError; // If all models fail, throw the last error
   } catch (err) {
     console.error('❌ Gemini SDK Error:', err?.message || err);
-    
-    // ইউজারকে কোনো নোংরা API Error না দেখিয়ে, সুন্দর একটি মেসেজ পাঠানো হলো
-    return "দুঃখিত, আমাদের প্রতিনিধি কিছুক্ষণের মধ্যে আপনার সাথে কথা বলবে, অনুগ্রহ করে একটু অপেক্ষা করুন। 😊";
+    throw new Error('API_ERROR');
   }
 }
 
@@ -284,6 +282,7 @@ class LLMRouter {
       else if (provider === 'claude') response = await callClaude(apiKey, history, message);
     } catch (err) {
       console.error(`❌ ${provider} error:`, err.message);
+      if (err.message === 'API_ERROR') throw err;
       return null;
     }
 

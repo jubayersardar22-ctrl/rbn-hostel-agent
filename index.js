@@ -90,6 +90,35 @@ let client = null;
 let wss = null;
 const PORT = process.env.PORT || 3000;
 
+// ===== Message Queue System =====
+let pendingQueue = [];
+
+async function processQueue() {
+  if (pendingQueue.length === 0 || !llm.isReady() || !client || !isReady) return;
+  const item = pendingQueue.shift();
+  try {
+    const aiReply = await llm.reply(item.from, item.body);
+    if (aiReply) {
+      await client.sendMessage(item.from, "হ্যালো, আমরা এখন লাইনে আছি। আপনার প্রশ্নের উত্তরটি নিচে দেওয়া হলো:\n\n" + aiReply);
+      console.log(`✅ Queue recovered and sent to ${item.from}`);
+    } else {
+      // AI return null (unlikely but handle it)
+      console.log(`⚠️ Queue recovery returned empty for ${item.from}`);
+    }
+  } catch (err) {
+    if (err.message === 'API_ERROR') {
+      // Put back at the front of the queue
+      pendingQueue.unshift(item);
+      console.log(`⚠️ Queue retry failed for ${item.from}. API still busy. Re-queued.`);
+    } else {
+      console.error('❌ Queue processing error:', err.message);
+    }
+  }
+}
+
+// প্রতি ২০ সেকেন্ড পর পর কিউ চেক করবে
+setInterval(processQueue, 20000);
+
 // ===== Express App =====
 const app = express();
 app.use(express.json());
@@ -559,16 +588,24 @@ function initWhatsApp() {
           return;
         }
         
-        const aiReply = await llm.reply(msg.from, body);
-        if (aiReply) {
-          await msg.reply(aiReply);
-          return;
+        try {
+          const aiReply = await llm.reply(msg.from, body);
+          if (aiReply) {
+            await msg.reply(aiReply);
+            return;
+          }
+        } catch (err) {
+          if (err.message === 'API_ERROR') {
+            console.log(`⚠️ API Error hit for ${msg.from}. Queuing message.`);
+            pendingQueue.push({ from: msg.from, body: body });
+            await msg.reply('দুঃখিত, আমাদের প্রতিনিধি কিছুক্ষণের মধ্যে আপনার সাথে কথা বলবে, অনুগ্রহ করে একটু অপেক্ষা করুন। 😊');
+            return;
+          }
         }
       }
 
       // Fallback: knowledge base handler
       await messageHandler.processMessage(msg, msg.from, body);
-
 
     } catch (error) {
       console.error('❌ Message error:', error.message);

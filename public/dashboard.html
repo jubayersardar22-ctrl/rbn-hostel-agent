@@ -2,7 +2,10 @@
 <html lang="bn">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#1A1D24">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="apple-touch-icon" href="/icon.svg">
   <title>নিবেদিকা হোস্টেল - এজেন্ট ড্যাশবোর্ড</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -484,10 +487,41 @@
         border-bottom: 1px solid var(--border);
       }
     }
+    /* Mobile Responsiveness */
+    .mobile-header { display: none; }
+    @media (max-width: 768px) {
+      .sidebar { transform: translateX(-100%); transition: 0.3s ease; }
+      .sidebar.open { transform: translateX(0); }
+      .main-content { margin-left: 0; padding: 15px; padding-top: 60px; }
+      .mobile-header {
+        display: flex; align-items: center; justify-content: space-between;
+        position: fixed; top: 0; left: 0; right: 0; height: 50px;
+        background: var(--card); border-bottom: 1px solid var(--border);
+        padding: 0 15px; z-index: 99;
+      }
+      .hamburger { font-size: 24px; cursor: pointer; color: var(--text); }
+      .two-col, .three-col { grid-template-columns: 1fr; }
+      
+      /* Chat Mobile Layout */
+      .chat-container { flex-direction: column; height: calc(100vh - 120px); }
+      .chat-sidebar { width: 100%; border-right: none; border-bottom: 1px solid var(--border); flex: none; height: 40%; }
+      .chat-window { width: 100%; height: 60%; }
+      .chat-sidebar.mobile-hide { display: none; }
+      .chat-window.mobile-show { height: 100%; }
+      #backToChatsBtn { display: inline-flex; align-items: center; gap: 5px; cursor: pointer; padding: 5px; color: var(--green); margin-right: 10px; }
+    }
+    @media (min-width: 769px) {
+      #backToChatsBtn { display: none !important; }
+    }
   </style>
 </head>
 <body>
 
+  <!-- Mobile Header -->
+  <div class="mobile-header">
+    <div class="logo-name" style="margin:0;">নিবেদিকা হোস্টেল</div>
+    <div class="hamburger" onclick="toggleSidebar()">☰</div>
+  </div>
 <!-- Sidebar -->
 <nav class="sidebar">
   <div class="logo">
@@ -652,6 +686,7 @@
           <!-- Chat Header -->
           <div class="chat-window-header">
             <div class="chat-window-user">
+              <span id="backToChatsBtn" onclick="backToChats()">◀</span>
               <div class="chat-avatar" id="activeChatAvatar">👤</div>
               <div>
                 <div class="chat-window-name" id="activeChatName">কাস্টমার</div>
@@ -839,6 +874,26 @@
 <div id="toast"></div>
 
 <script>
+  // PWA Service Worker Registration
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js').then(() => {
+      console.log('Service Worker Registered');
+    });
+  }
+
+  // Mobile Sidebar Toggle
+  function toggleSidebar() {
+    document.querySelector('.sidebar').classList.toggle('open');
+  }
+
+  // Close sidebar when clicking a nav item on mobile
+  document.querySelectorAll('.nav-item').forEach(item => {
+    item.addEventListener('click', () => {
+      if (window.innerWidth <= 768) {
+        document.querySelector('.sidebar').classList.remove('open');
+      }
+    });
+  });
   let ws;
   let statusData = {};
 
@@ -1241,6 +1296,15 @@
     });
   }
 
+  function backToChats() {
+    activeChatId = null;
+    document.querySelector('.chat-sidebar').classList.remove('mobile-hide');
+    document.querySelector('.chat-window').classList.remove('mobile-show');
+    document.getElementById('chatActiveArea').style.display = 'none';
+    document.getElementById('chatPlaceholder').style.display = 'flex';
+    document.querySelectorAll('.chat-item').forEach(el => el.classList.remove('active'));
+  }
+
   async function selectChat(chatId, chatName) {
     activeChatId = chatId;
     
@@ -1248,6 +1312,12 @@
     document.querySelectorAll('.chat-item').forEach(el => el.classList.remove('active'));
     document.getElementById('chatPlaceholder').style.display = 'none';
     document.getElementById('chatActiveArea').style.display = 'flex';
+    
+    // Mobile view toggles
+    if (window.innerWidth <= 768) {
+      document.querySelector('.chat-sidebar').classList.add('mobile-hide');
+      document.querySelector('.chat-window').classList.add('mobile-show');
+    }
     
     document.getElementById('activeChatName').textContent = chatName;
     document.getElementById('activeChatAvatar').textContent = chatName.charAt(0);

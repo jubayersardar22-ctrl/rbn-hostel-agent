@@ -490,16 +490,21 @@
     /* Mobile Responsiveness */
     .mobile-header { display: none; }
     @media (max-width: 768px) {
-      .sidebar { transform: translateX(-100%); transition: 0.3s ease; }
-      .sidebar.open { transform: translateX(0); }
-      .main-content { margin-left: 0; padding: 15px; padding-top: 60px; }
+      .sidebar { transform: translateX(-100%); transition: 0.3s ease; z-index: 105; }
+      .sidebar.open { transform: translateX(0); box-shadow: 4px 0 20px rgba(0,0,0,0.8); }
+      .main { margin-left: 0; padding: 15px; padding-top: 80px; }
       .mobile-header {
         display: flex; align-items: center; justify-content: space-between;
-        position: fixed; top: 0; left: 0; right: 0; height: 50px;
+        position: fixed; top: 0; left: 0; right: 0; height: 60px;
         background: var(--card); border-bottom: 1px solid var(--border);
-        padding: 0 15px; z-index: 99;
+        padding: 0 20px; z-index: 99;
       }
-      .hamburger { font-size: 24px; cursor: pointer; color: var(--text); }
+      .hamburger { font-size: 26px; cursor: pointer; color: var(--text); padding: 5px; }
+      .page-header { flex-direction: column; align-items: flex-start; gap: 10px; margin-bottom: 20px; }
+      .stats-grid { grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+      .stat-card { padding: 15px; }
+      .stat-icon { font-size: 24px; margin-bottom: 5px; }
+      .stat-value { font-size: 20px; }
       .two-col, .three-col { grid-template-columns: 1fr; }
       
       /* Chat Mobile Layout */

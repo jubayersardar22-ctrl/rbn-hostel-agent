@@ -183,10 +183,11 @@ async function callGemini(apiKey, history, message) {
 
     throw lastError; // If all models fail, throw the last error
   } catch (err) {
-    console.error('❌ Gemini SDK Error:', err.message);
+    console.error('❌ Gemini SDK Error:', err?.message || err);
     
-    // আরও ইউজার ফ্রেন্ডলি মেসেজ
-    return `⚠️ *AI Error:* ${err.message}\n\nআপনার API Key তে সমস্যা আছে অথবা সার্ভার ডাউন। দয়া করে Google AI Studio থেকে "Create API key in new project" এ ক্লিক করে একদম নতুন একটি API Key তৈরি করুন এবং সেটি ব্যবহার করুন।`;
+    // রিটার্ন null করলে index.js স্বয়ংক্রিয়ভাবে knowledge base (messageHandler) এ ফলব্যাক করবে।
+    // ফলে ইউজাররা আর কোনো নোংরা API Error দেখতে পাবে না।
+    return null;
   }
 }
 

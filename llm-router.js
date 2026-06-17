@@ -185,9 +185,8 @@ async function callGemini(apiKey, history, message) {
   } catch (err) {
     console.error('❌ Gemini SDK Error:', err?.message || err);
     
-    // রিটার্ন null করলে index.js স্বয়ংক্রিয়ভাবে knowledge base (messageHandler) এ ফলব্যাক করবে।
-    // ফলে ইউজাররা আর কোনো নোংরা API Error দেখতে পাবে না।
-    return null;
+    // ইউজারকে কোনো নোংরা API Error না দেখিয়ে, সুন্দর একটি মেসেজ পাঠানো হলো
+    return "দুঃখিত, আমাদের প্রতিনিধি কিছুক্ষণের মধ্যে আপনার সাথে কথা বলবে, অনুগ্রহ করে একটু অপেক্ষা করুন। 😊";
   }
 }
 

@@ -558,7 +558,7 @@ function initWhatsApp() {
       // প্রথমে LLM চেষ্টা করো — না পারলে knowledge base fallback
       if (settings.geminiEnabled) {
         if (!llm.isReady()) {
-          await msg.reply('⚠️ *সিস্টেম এলার্ট:*\nAI সহকারী চালু করা আছে, কিন্তু কোনো API Key খুঁজে পাওয়া যায়নি! দয়া করে ড্যাশবোর্ডে গিয়ে সঠিক API Key দিন।');
+          await msg.reply('দুঃখিত, আমাদের প্রতিনিধি কিছুক্ষণের মধ্যে আপনার সাথে কথা বলবে, অনুগ্রহ করে একটু অপেক্ষা করুন। 😊');
           return;
         }
         

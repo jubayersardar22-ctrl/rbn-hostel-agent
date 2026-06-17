@@ -168,8 +168,9 @@ async function callGemini(apiKey, history, message) {
         let model = genAI.getGenerativeModel({
           model: modelName,
           systemInstruction: SYSTEM_PROMPT,
-          // লজিক্যাল এবং সঠিক উত্তরের জন্য টেম্পারেচার কমানো হলো
-          generationConfig: { temperature: 0.3, maxOutputTokens: 150 }
+          // লজিক্যাল এবং সঠিক উত্তরের জন্য টেম্পারেচার কমানো হলো। 
+          // maxOutputTokens সরিয়ে দেওয়া হয়েছে কারণ বাংলায় টোকেন বেশি লাগে, তাই উত্তর অর্ধেক কেটে যাচ্ছিল।
+          generationConfig: { temperature: 0.3 }
         });
         
         let chat = model.startChat({ history: formattedHistory });

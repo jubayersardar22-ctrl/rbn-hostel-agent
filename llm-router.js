@@ -133,7 +133,7 @@ async function callGemini(apiKey, history, message) {
     }));
 
     // ডাইনামিক মডেল সিলেকশন (API থেকে সরাসরি এভেইলেবল মডেল ফেচ করা)
-    let supportedModelName = null;
+    let availableModels = [];
     let apiErrorMsg = null;
     
     try {
@@ -141,39 +141,52 @@ async function callGemini(apiKey, history, message) {
       if (modelsData && modelsData.error) {
         apiErrorMsg = modelsData.error.message;
       } else if (modelsData && modelsData.models) {
-        const availableModels = modelsData.models
+        availableModels = modelsData.models
           .filter(m => m.supportedGenerationMethods && m.supportedGenerationMethods.includes('generateContent'))
           .map(m => m.name.replace('models/', ''));
-        
-        if (availableModels.length > 0) {
-          const priority = ['gemini-2.5-flash', 'gemini-2.0-flash-exp', 'gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-1.0-pro', 'gemini-pro'];
-          supportedModelName = priority.find(p => availableModels.includes(p)) || availableModels[0];
-        }
       }
     } catch (e) {
       console.warn('⚠️ Auto model fetch error:', e.message);
     }
 
-    if (!supportedModelName) {
+    if (availableModels.length === 0) {
       const errorText = apiErrorMsg || "আপনার API Key তে কোনো মডেল সাপোর্ট করছে না।";
       throw new Error(errorText);
     }
 
-    let model = genAI.getGenerativeModel({
-      model: supportedModelName,
-      systemInstruction: SYSTEM_PROMPT,
-      generationConfig: { temperature: 0.9, maxOutputTokens: 150 }
-    });
-    
-    let chat = model.startChat({ history: formattedHistory });
-    const result = await chat.sendMessage(message);
-    return result.response.text();
+    const priority = ['gemini-2.5-flash', 'gemini-2.0-flash-exp', 'gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-1.0-pro', 'gemini-pro'];
+    const modelsToTry = priority.filter(p => availableModels.includes(p));
+    if (modelsToTry.length === 0) modelsToTry.push(availableModels[0]); // Fallback to first available
 
+    let lastError = null;
+
+    for (const modelName of modelsToTry) {
+      try {
+        let model = genAI.getGenerativeModel({
+          model: modelName,
+          systemInstruction: SYSTEM_PROMPT,
+          // লজিক্যাল এবং সঠিক উত্তরের জন্য টেম্পারেচার কমানো হলো
+          generationConfig: { temperature: 0.3, maxOutputTokens: 150 }
+        });
+        
+        let chat = model.startChat({ history: formattedHistory });
+        const result = await chat.sendMessage(message);
+        return result.response.text();
+      } catch (err) {
+        lastError = err;
+        console.warn(`⚠️ Model ${modelName} failed: ${err.message}. Trying next...`);
+        // If it's an API Key error or some unrecoverable error, we might want to break,
+        // but 503 Service Unavailable or 429 Rate Limit should trigger the next model.
+        if (err.message.includes('API key not valid')) break;
+      }
+    }
+
+    throw lastError; // If all models fail, throw the last error
   } catch (err) {
     console.error('❌ Gemini SDK Error:', err.message);
     
     // আরও ইউজার ফ্রেন্ডলি মেসেজ
-    return `⚠️ *AI Error:* ${err.message}\n\nআপনার API Key তে সমস্যা আছে। దয়া করে Google AI Studio থেকে "Create API key in new project" এ ক্লিক করে একদম নতুন একটি API Key তৈরি করুন এবং সেটি ব্যবহার করুন।`;
+    return `⚠️ *AI Error:* ${err.message}\n\nআপনার API Key তে সমস্যা আছে অথবা সার্ভার ডাউন। দয়া করে Google AI Studio থেকে "Create API key in new project" এ ক্লিক করে একদম নতুন একটি API Key তৈরি করুন এবং সেটি ব্যবহার করুন।`;
   }
 }
 

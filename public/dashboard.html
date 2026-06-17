@@ -490,7 +490,8 @@
     /* Mobile Responsiveness */
     .mobile-header { display: none; }
     @media (max-width: 768px) {
-      .sidebar { transform: translateX(-100%); transition: 0.3s ease; z-index: 105; }
+      .sidebar { width: 240px !important; transform: translateX(-100%); transition: 0.3s ease; z-index: 105; }
+      .sidebar .logo-name, .sidebar .logo-sub, .sidebar .nav-item span, .sidebar-bottom { display: block !important; }
       .sidebar.open { transform: translateX(0); box-shadow: 4px 0 20px rgba(0,0,0,0.8); }
       .main { margin-left: 0; padding: 15px; padding-top: 80px; }
       .mobile-header {

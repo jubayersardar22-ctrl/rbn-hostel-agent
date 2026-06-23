@@ -15,7 +15,6 @@ const QRCode = require('qrcode');
 const path = require('path');
 const fs = require('fs');
 const LocalFileStore = require('./LocalFileStore');
-const LocalFileStore = require('./LocalFileStore');
 
 const HOSTEL_INFO = require('./knowledge_base');
 const MessageHandler = require('./handlers/messageHandler');

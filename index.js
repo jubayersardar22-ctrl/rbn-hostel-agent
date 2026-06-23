@@ -476,6 +476,12 @@ app.post('/api/whatsapp/reconnect', async (req, res) => {
 function initWhatsApp() {
   console.log('\n🔄 WhatsApp Client চালু হচ্ছে...');
 
+  if (client) {
+    try {
+      client.destroy().catch(() => {});
+    } catch (e) {}
+  }
+
   if (global._initWatchdog) clearTimeout(global._initWatchdog);
   global._initWatchdog = setTimeout(async () => {
     console.error('❌ Init Error: WhatsApp took too long to start. Forcefully cleaning up and restarting...');

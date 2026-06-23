@@ -130,7 +130,7 @@ async function callGemini(apiKey, history, message) {
     const { GoogleGenerativeAI } = require("@google/generative-ai");
     const genAI = new GoogleGenerativeAI(apiKey);
     
-    const formattedHistory = history.slice(-8).map(h => ({
+    const formattedHistory = history.slice(-30).map(h => ({
       role: h.role === 'user' ? 'user' : 'model',
       parts: [{ text: h.text }]
     }));
@@ -288,7 +288,7 @@ class LLMRouter {
 
     if (response) {
       history.push({ role: 'user', text: message }, { role: 'model', text: response });
-      if (history.length > 20) history.splice(0, 2);
+      if (history.length > 60) history.splice(0, 2);
     }
 
     return response;

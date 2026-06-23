@@ -476,6 +476,26 @@ app.post('/api/whatsapp/reconnect', async (req, res) => {
 function initWhatsApp() {
   console.log('\n🔄 WhatsApp Client চালু হচ্ছে...');
 
+  if (global._initWatchdog) clearTimeout(global._initWatchdog);
+  global._initWatchdog = setTimeout(async () => {
+    console.error('❌ Init Error: WhatsApp took too long to start. Forcefully cleaning up and restarting...');
+    try {
+      if (client) await client.destroy().catch(() => {});
+    } catch (e) {}
+    
+    // Auth folder মুছে ফেলো (LocalAuth)
+    const dataDir = path.join(__dirname, 'data');
+    if (fs.existsSync(dataDir)) {
+      const files = fs.readdirSync(dataDir);
+      for (const file of files) {
+        if (file.startsWith('session-')) {
+          fs.rmSync(path.join(dataDir, file), { recursive: true, force: true });
+        }
+      }
+    }
+    setTimeout(() => initWhatsApp(), 5000);
+  }, 45000); // 45 seconds watchdog
+
   client = new Client({
     authStrategy: new LocalAuth({
       dataPath: path.join(__dirname, 'data')
@@ -504,6 +524,7 @@ function initWhatsApp() {
 
   // QR Code
   client.on('qr', async (qr) => {
+    if (global._initWatchdog) clearTimeout(global._initWatchdog);
     currentQR = qr;
     isReady = false;
     isConnected = false;
@@ -532,6 +553,7 @@ function initWhatsApp() {
 
   // Ready
   client.on('ready', () => {
+    if (global._initWatchdog) clearTimeout(global._initWatchdog);
     isReady = true;
     isConnected = true;
     currentQR = null;

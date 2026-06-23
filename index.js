@@ -100,7 +100,7 @@ async function processQueue() {
   try {
     const aiReply = await llm.reply(item.from, item.body);
     if (aiReply) {
-      await client.sendMessage(item.from, "হ্যাঁ, আমরা এখন লাইনে আছি! 😊\n\nআপনার প্রশ্নের উত্তর:\n" + aiReply);
+      await client.sendMessage(item.from, aiReply);
       console.log(`✅ Queue recovered and sent to ${item.from}`);
     } else {
       // AI return null -> Knowledge base fallback if needed, but for now just drop or try again
@@ -646,7 +646,8 @@ function initWhatsApp() {
             if (err.message === 'API_ERROR') {
               console.log(`⚠️ API Error hit for ${msg.from}. Queuing message.`);
               pendingQueue.push({ from: msg.from, body: body });
-              await msg.reply('দুঃখিত, আমাদের প্রতিনিধি কিছুক্ষণের মধ্যে আপনার সাথে কথা বলবে, অনুগ্রহ করে একটু অপেক্ষা করুন। 😊');
+              // আমরা সাথে সাথে কোনো 'দুঃখিত' মেসেজ পাঠাবো না, কারণ কিউ থেকে একটু পরেই উত্তর যাবে।
+              // इससे ইউজারের কাছে বট আরও মানবিক মনে হবে।
               return;
             }
           }

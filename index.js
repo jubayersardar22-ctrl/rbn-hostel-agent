@@ -479,6 +479,9 @@ function initWhatsApp() {
       backupSyncIntervalMs: 60000,
       dataPath: persistentDataPath
     }),
+    restartOnAuthFail: true,
+    takeoverOnConflict: true,
+    takeoverTimeoutMs: 0,
     puppeteer: {
       headless: true,
       executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
@@ -486,7 +489,12 @@ function initWhatsApp() {
         '--no-sandbox', '--disable-setuid-sandbox',
         '--disable-dev-shm-usage', '--disable-accelerated-2d-canvas',
         '--no-first-run', '--no-zygote', '--single-process',
-        '--disable-gpu', '--disable-extensions'
+        '--disable-gpu', '--disable-extensions',
+        '--disable-background-timer-throttling',
+        '--disable-backgrounding-occluded-windows',
+        '--disable-renderer-backgrounding',
+        '--disable-ipc-flooding-protection',
+        '--max-old-space-size=256'
       ]
     }
   });
@@ -530,6 +538,26 @@ function initWhatsApp() {
     qrImageDataUrl = null;
     console.log('\n🎉 WhatsApp এজেন্ট Ready!');
     broadcast({ type: 'ready', message: 'WhatsApp এজেন্ট চালু হয়েছে!' });
+
+    // ===== Keepalive Heartbeat =====
+    // প্রতি ৩ মিনিটে WhatsApp state চেক করে কানেকশন জীবিত রাখবে
+    if (global._keepaliveInterval) clearInterval(global._keepaliveInterval);
+    global._keepaliveInterval = setInterval(async () => {
+      try {
+        if (client && isReady) {
+          const state = await client.getState();
+          if (state !== 'CONNECTED') {
+            console.log(`⚠️ Heartbeat: State is ${state}, attempting recovery...`);
+            isReady = false;
+            isConnected = false;
+          } else {
+            console.log('💓 Heartbeat: WhatsApp connected');
+          }
+        }
+      } catch (err) {
+        console.log('⚠️ Heartbeat check failed:', err.message);
+      }
+    }, 3 * 60 * 1000); // ৩ মিনিট
   });
 
   // Message Create (ইনকামিং এবং আউটগোয়িং মেসেজ লাইভ ব্রডকাস্ট)
@@ -612,19 +640,40 @@ function initWhatsApp() {
     }
   });
 
-  // Disconnected
+  // Disconnected — সেশন ধরে রেখে পুনরায় সংযোগ করো (নতুন QR লাগবে না)
   client.on('disconnected', (reason) => {
     isReady = false;
     isConnected = false;
     console.log('⚠️ Disconnected:', reason);
     broadcast({ type: 'disconnected', reason });
-    setTimeout(() => initWhatsApp(), 8000);
+    
+    // সেশন মুছে ফেলো না, শুধু পুনরায় সংযোগ করো
+    // client.destroy() কল করো না — এতে সেশন হারিয়ে যায়
+    console.log('🔄 ৫ সেকেন্ড পর পুনরায় সংযোগ চেষ্টা হবে...');
+    setTimeout(() => {
+      client.initialize().catch(err => {
+        console.error('❌ Reconnect failed:', err.message);
+        // যদি initialize ব্যর্থ হয়, তবে সম্পূর্ণ নতুন করে শুরু করো
+        setTimeout(() => initWhatsApp(), 10000);
+      });
+    }, 5000);
+  });
+
+  // State Change — কানেকশনের অবস্থা পরিবর্তন হলে লগ করো
+  client.on('change_state', (state) => {
+    console.log(`📡 WhatsApp State: ${state}`);
+    if (state === 'CONFLICT' || state === 'UNLAUNCHED' || state === 'UNPAIRED') {
+      console.log('⚠️ WhatsApp state issue detected, but keeping session alive...');
+    }
   });
 
   client.on('auth_failure', () => {
     isReady = false;
     isConnected = false;
+    console.log('❌ Auth failure — নতুন QR দরকার হবে');
     broadcast({ type: 'auth_failure' });
+    // Auth failure মানে সেশন expired — নতুন করে শুরু করো
+    setTimeout(() => initWhatsApp(), 5000);
   });
 
   client.initialize().catch(err => {

@@ -94,15 +94,16 @@ const PORT = process.env.PORT || 3000;
 let pendingQueue = [];
 
 async function processQueue() {
-  if (pendingQueue.length === 0 || !llm.isReady() || !client || !isReady) return;
+  if (pendingQueue.length === 0 || !client || !isReady) return;
+  // llm.isReady() চেক বাদ দিলাম, কারণ API key থাকলেও মাঝে মাঝে False হতে পারে সাময়িক নেটওয়ার্ক এরর এর কারণে।
   const item = pendingQueue.shift();
   try {
     const aiReply = await llm.reply(item.from, item.body);
     if (aiReply) {
-      await client.sendMessage(item.from, "হ্যালো, আমরা এখন লাইনে আছি। আপনার প্রশ্নের উত্তরটি নিচে দেওয়া হলো:\n\n" + aiReply);
+      await client.sendMessage(item.from, "হ্যাঁ, আমরা এখন লাইনে আছি! 😊\n\nআপনার প্রশ্নের উত্তর:\n" + aiReply);
       console.log(`✅ Queue recovered and sent to ${item.from}`);
     } else {
-      // AI return null (unlikely but handle it)
+      // AI return null -> Knowledge base fallback if needed, but for now just drop or try again
       console.log(`⚠️ Queue recovery returned empty for ${item.from}`);
     }
   } catch (err) {
@@ -611,24 +612,23 @@ function initWhatsApp() {
       // ===== LLM (Gemini/OpenAI/Claude) দিয়ে উত্তর =====
       // প্রথমে LLM চেষ্টা করো — না পারলে knowledge base fallback
       if (settings.geminiEnabled) {
-        if (!llm.isReady()) {
-          await msg.reply('দুঃখিত, আমাদের প্রতিনিধি কিছুক্ষণের মধ্যে আপনার সাথে কথা বলবে, অনুগ্রহ করে একটু অপেক্ষা করুন। 😊');
-          return;
-        }
-        
-        try {
-          const aiReply = await llm.reply(msg.from, body);
-          if (aiReply) {
-            await msg.reply(aiReply);
-            return;
+        if (llm.isReady()) {
+          try {
+            const aiReply = await llm.reply(msg.from, body);
+            if (aiReply) {
+              await msg.reply(aiReply);
+              return;
+            }
+          } catch (err) {
+            if (err.message === 'API_ERROR') {
+              console.log(`⚠️ API Error hit for ${msg.from}. Queuing message.`);
+              pendingQueue.push({ from: msg.from, body: body });
+              await msg.reply('দুঃখিত, আমাদের প্রতিনিধি কিছুক্ষণের মধ্যে আপনার সাথে কথা বলবে, অনুগ্রহ করে একটু অপেক্ষা করুন। 😊');
+              return;
+            }
           }
-        } catch (err) {
-          if (err.message === 'API_ERROR') {
-            console.log(`⚠️ API Error hit for ${msg.from}. Queuing message.`);
-            pendingQueue.push({ from: msg.from, body: body });
-            await msg.reply('দুঃখিত, আমাদের প্রতিনিধি কিছুক্ষণের মধ্যে আপনার সাথে কথা বলবে, অনুগ্রহ করে একটু অপেক্ষা করুন। 😊');
-            return;
-          }
+        } else {
+          console.log(`⚠️ LLM is enabled but no valid API key found. Falling back to Knowledge Base.`);
         }
       }
 

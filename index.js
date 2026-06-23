@@ -497,9 +497,11 @@ function initWhatsApp() {
   client = new Client({
     authStrategy: new RemoteAuth({
       store: store,
-      backupSyncIntervalMs: 60000,
+      backupSyncIntervalMs: 300000,
       dataPath: persistentDataPath
     }),
+    authTimeoutMs: 300000,
+    qrMaxRetries: 10,
     restartOnAuthFail: true,
     takeoverOnConflict: true,
     takeoverTimeoutMs: 0,
@@ -661,22 +663,19 @@ function initWhatsApp() {
     }
   });
 
-  // Disconnected — সেশন ধরে রেখে পুনরায় সংযোগ করো (নতুন QR লাগবে না)
-  client.on('disconnected', (reason) => {
+  // Disconnected — সেশন ধরে রেখে পুনরায় সংযোগ করো
+  client.on('disconnected', async (reason) => {
     isReady = false;
     isConnected = false;
     console.log('⚠️ Disconnected:', reason);
     broadcast({ type: 'disconnected', reason });
     
-    // সেশন মুছে ফেলো না, শুধু পুনরায় সংযোগ করো
-    // client.destroy() কল করো না — এতে সেশন হারিয়ে যায়
     console.log('🔄 ৫ সেকেন্ড পর পুনরায় সংযোগ চেষ্টা হবে...');
-    setTimeout(() => {
-      client.initialize().catch(err => {
-        console.error('❌ Reconnect failed:', err.message);
-        // যদি initialize ব্যর্থ হয়, তবে সম্পূর্ণ নতুন করে শুরু করো
-        setTimeout(() => initWhatsApp(), 10000);
-      });
+    setTimeout(async () => {
+      if (client) {
+        try { await client.destroy().catch(() => {}); } catch(e) {}
+      }
+      initWhatsApp();
     }, 5000);
   });
 

@@ -1,5 +1,5 @@
 // =============================================================
-// নিবেদিকা ভিআইপি হোস্টেল - WhatsApp AI এজেন্ট v4.0
+// RBN Hostel - WhatsApp AI এজেন্ট v4.0
 // Express + WebSocket + Multi-LLM (Gemini/OpenAI/Claude) + Dashboard
 // =============================================================
 'use strict';
@@ -521,7 +521,7 @@ function initWhatsApp() {
     }
   });
 
-  const messageHandler = new MessageHandler(client, HOSTEL_INFO, { agentName: 'নিবেদিকা সহকারী' });
+  const messageHandler = new MessageHandler(client, HOSTEL_INFO, { agentName: 'RBN Hostel সহকারী' });
   const maintenanceHandler = new MaintenanceHandler(client, HOSTEL_INFO);
 
   // QR Code
@@ -706,7 +706,7 @@ function initWhatsApp() {
 // ===== Server Start =====
 server.listen(PORT, () => {
   console.log('\n' + '='.repeat(60));
-  console.log('🚀 নিবেদিকা VIP হোস্টেল WhatsApp এজেন্ট v3.0');
+  console.log('🚀 RBN Hostel WhatsApp এজেন্ট v4.0');
   console.log('='.repeat(60));
   console.log(`\n🌐 Dashboard: http://localhost:${PORT}`);
   console.log(`📊 Status API: http://localhost:${PORT}/api/status\n`);

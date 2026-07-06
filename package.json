@@ -1,7 +1,7 @@
 {
-  "name": "nibedika-whatsapp-agent",
-  "version": "2.0.0",
-  "description": "নিবেদিকা ভিআইপি হোস্টেল - WhatsApp AI এজেন্ট",
+  "name": "rbn-hostel-agent",
+  "version": "3.0.0",
+  "description": "RBN Hostel - WhatsApp AI এজেন্ট",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
@@ -15,7 +15,7 @@
     "nibedika",
     "bangladesh"
   ],
-  "author": "Nibedika VIP Hostel",
+  "author": "RBN Hostel",
   "license": "ISC",
   "dependencies": {
     "@google/generative-ai": "^0.24.1",

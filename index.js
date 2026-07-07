@@ -430,12 +430,18 @@ app.post('/api/whatsapp/disconnect', async (req, res) => {
     qrImageDataUrl = null;
 
     if (client) {
-      try { client.destroy().catch(() => {}); } catch(e) {}
+      try { await client.logout().catch(() => {}); } catch(e) {}
+      try { await client.destroy().catch(() => {}); } catch(e) {}
       client = null;
     }
 
+    const authPath = path.join(__dirname, '.wwebjs_auth');
+    if (fs.existsSync(authPath)) fs.rmSync(authPath, { recursive: true, force: true });
+    const cachePath = path.join(__dirname, '.wwebjs_cache');
+    if (fs.existsSync(cachePath)) fs.rmSync(cachePath, { recursive: true, force: true });
+
     broadcast({ type: 'whatsapp_disconnected' });
-    res.json({ success: true, message: 'WhatsApp সংযোগ বিচ্ছিন্ন হয়েছে। নতুন QR আসছে...' });
+    res.json({ success: true, message: 'WhatsApp সংযোগ বিচ্ছিন্ন হয়েছে এবং সেশন রিসেট করা হয়েছে। নতুন QR আসছে...' });
 
     // পুনরায় চালু করো
     setTimeout(() => initWhatsApp(), 3000);
@@ -447,12 +453,25 @@ app.post('/api/whatsapp/disconnect', async (req, res) => {
 // WhatsApp Reconnect
 app.post('/api/whatsapp/reconnect', async (req, res) => {
   try {
+    isReady = false;
+    isConnected = false;
+    currentQR = null;
+    qrImageDataUrl = null;
+
     if (client) {
-      await client.destroy().catch(() => {});
+      try { await client.logout().catch(() => {}); } catch(e) {}
+      try { await client.destroy().catch(() => {}); } catch(e) {}
+      client = null;
     }
+    
+    const authPath = path.join(__dirname, '.wwebjs_auth');
+    if (fs.existsSync(authPath)) fs.rmSync(authPath, { recursive: true, force: true });
+    const cachePath = path.join(__dirname, '.wwebjs_cache');
+    if (fs.existsSync(cachePath)) fs.rmSync(cachePath, { recursive: true, force: true });
+
     broadcast({ type: 'whatsapp_reconnecting' });
-    res.json({ success: true, message: 'পুনরায় সংযোগ করা হচ্ছে...' });
-    setTimeout(() => initWhatsApp(), 2000);
+    res.json({ success: true, message: 'সেশন রিসেট করে পুনরায় সংযোগ করা হচ্ছে...' });
+    setTimeout(() => initWhatsApp(), 3000);
   } catch (e) {
     res.status(500).json({ success: false, message: e.message });
   }

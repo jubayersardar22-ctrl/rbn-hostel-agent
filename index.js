@@ -9,7 +9,7 @@ require('dotenv').config();
 const express = require('express');
 const http = require('http');
 const WebSocket = require('ws');
-const { Client, NoAuth } = require('whatsapp-web.js');
+const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode-terminal');
 const QRCode = require('qrcode');
 const path = require('path');
@@ -500,7 +500,7 @@ function initWhatsApp() {
   }, 120000); // 2 minutes watchdog
 
   client = new Client({
-    authStrategy: new NoAuth(),
+    authStrategy: new LocalAuth({ dataPath: './.wwebjs_auth' }),
     authTimeoutMs: 0,
     qrMaxRetries: 15,
     puppeteer: {

@@ -485,7 +485,6 @@ function initWhatsApp() {
     qrMaxRetries: 15,
     puppeteer: {
       headless: true,
-      // Official puppeteer docker image has Chrome at this path
       executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/google-chrome-stable',
       args: [
         '--no-sandbox',
@@ -496,7 +495,9 @@ function initWhatsApp() {
         '--no-zygote',
         '--disable-gpu',
         '--disable-extensions',
-        '--single-process'
+        '--disable-background-timer-throttling',
+        '--disable-backgrounding-occluded-windows',
+        '--disable-renderer-backgrounding'
       ]
     }
   });

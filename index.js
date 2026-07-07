@@ -680,6 +680,15 @@ function initWhatsApp() {
           try {
             const aiReply = await llm.reply(msg.from, body);
             if (aiReply) {
+              // Simulating realistic human typing delay
+              try {
+                const chat = await msg.getChat();
+                await chat.sendStateTyping();
+                const replyLength = aiReply.length;
+                const typingDuration = Math.min(Math.max(replyLength * 80, 2000), 6000); // 2 to 6 seconds
+                await new Promise(resolve => setTimeout(resolve, typingDuration));
+              } catch (e) {}
+
               await msg.reply(aiReply);
               return;
             }
@@ -698,6 +707,11 @@ function initWhatsApp() {
       }
 
       // Fallback: knowledge base handler
+      try {
+        const chat = await msg.getChat();
+        await chat.sendStateTyping();
+        await new Promise(resolve => setTimeout(resolve, 3000)); // 3 seconds delay for fallback
+      } catch (e) {}
       await messageHandler.processMessage(msg, msg.from, body);
 
     } catch (error) {

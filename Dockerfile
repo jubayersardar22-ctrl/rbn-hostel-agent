@@ -20,8 +20,8 @@ RUN npm ci --omit=dev
 # Copy source code
 COPY . .
 
-# Create required directories
-RUN mkdir -p images data
+# Create required directories and fix permissions
+RUN mkdir -p images data .wwebjs_auth .wwebjs_cache && chown -R pptruser:pptruser /app
 
 # Use the puppeteer user (non-root, for security)
 USER pptruser

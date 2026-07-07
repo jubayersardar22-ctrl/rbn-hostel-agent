@@ -9,12 +9,11 @@ require('dotenv').config();
 const express = require('express');
 const http = require('http');
 const WebSocket = require('ws');
-const { Client, RemoteAuth } = require('whatsapp-web.js');
+const { Client, NoAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode-terminal');
 const QRCode = require('qrcode');
 const path = require('path');
 const fs = require('fs');
-const LocalFileStore = require('./LocalFileStore');
 
 const HOSTEL_INFO = require('./knowledge_base');
 const MessageHandler = require('./handlers/messageHandler');
@@ -432,12 +431,7 @@ app.post('/api/whatsapp/disconnect', async (req, res) => {
 
     if (client) {
       try { client.destroy().catch(() => {}); } catch(e) {}
-    }
-
-    // Auth folder মুছে ফেলো
-    const authPath = path.join(__dirname, 'data', '.wwebjs_auth');
-    if (fs.existsSync(authPath)) {
-      fs.rmSync(authPath, { recursive: true, force: true });
+      client = null;
     }
 
     broadcast({ type: 'whatsapp_disconnected' });
@@ -478,33 +472,17 @@ function initWhatsApp() {
 
   if (global._initWatchdog) clearTimeout(global._initWatchdog);
   global._initWatchdog = setTimeout(async () => {
-    console.error('❌ Init Error: WhatsApp took too long to start. Forcefully cleaning up and restarting...');
+    console.error('❌ Init Watchdog: WhatsApp took too long. Restarting...');
     try {
       if (client) await client.destroy().catch(() => {});
     } catch (e) {}
-    
-    // Auth folder মুছে ফেলো
-    const authPath = path.join(__dirname, 'data', '.wwebjs_auth');
-    if (fs.existsSync(authPath)) {
-      fs.rmSync(authPath, { recursive: true, force: true });
-    }
     setTimeout(() => initWhatsApp(), 5000);
-  }, 45000); // 45 seconds watchdog
-
-  const persistentDataPath = path.join(__dirname, 'data', '.wwebjs_auth');
-  const store = new LocalFileStore(persistentDataPath);
+  }, 120000); // 2 minutes watchdog
 
   client = new Client({
-    authStrategy: new RemoteAuth({
-      store: store,
-      backupSyncIntervalMs: 300000,
-      dataPath: persistentDataPath
-    }),
-    authTimeoutMs: 300000,
+    authStrategy: new NoAuth(),
+    authTimeoutMs: 0,
     qrMaxRetries: 10,
-    restartOnAuthFail: true,
-    takeoverOnConflict: true,
-    takeoverTimeoutMs: 0,
     puppeteer: {
       headless: true,
       executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,

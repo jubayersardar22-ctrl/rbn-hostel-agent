@@ -517,7 +517,9 @@ function initWhatsApp() {
         '--disable-extensions',
         '--disable-background-timer-throttling',
         '--disable-backgrounding-occluded-windows',
-        '--disable-renderer-backgrounding'
+        '--disable-renderer-backgrounding',
+        '--disable-software-rasterizer',
+        '--js-flags="--max-old-space-size=256"'
       ]
     }
   });

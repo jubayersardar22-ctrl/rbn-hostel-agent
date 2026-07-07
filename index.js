@@ -460,6 +460,26 @@ app.post('/api/whatsapp/reconnect', async (req, res) => {
 
 // This old endpoint is removed in favor of the new LLM API
 
+// ===== Server-side Log Buffer (for debugging) =====
+const logBuffer = [];
+const MAX_LOGS = 100;
+const origLog = console.log;
+const origError = console.error;
+const origWarn = console.warn;
+function bufferLog(level, ...args) {
+  const msg = args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ');
+  logBuffer.push({ t: new Date().toISOString(), l: level, m: msg });
+  if (logBuffer.length > MAX_LOGS) logBuffer.shift();
+}
+console.log = (...args) => { bufferLog('INFO', ...args); origLog(...args); };
+console.error = (...args) => { bufferLog('ERROR', ...args); origError(...args); };
+console.warn = (...args) => { bufferLog('WARN', ...args); origWarn(...args); };
+
+// Diagnostic endpoint — Railway logs দেখার জন্য
+app.get('/api/logs', (req, res) => {
+  res.json({ logs: logBuffer.slice(-50) });
+});
+
 // ===== WhatsApp Client =====
 function initWhatsApp() {
   console.log('\n🔄 WhatsApp Client চালু হচ্ছে...');
@@ -664,21 +684,7 @@ function initWhatsApp() {
     }
   });
 
-  // Disconnected — সেশন ধরে রেখে পুনরায় সংযোগ করো
-  client.on('disconnected', async (reason) => {
-    isReady = false;
-    isConnected = false;
-    console.log('⚠️ Disconnected:', reason);
-    broadcast({ type: 'disconnected', reason });
-    
-    console.log('🔄 ৫ সেকেন্ড পর পুনরায় সংযোগ চেষ্টা হবে...');
-    setTimeout(async () => {
-      if (client) {
-        try { await client.destroy().catch(() => {}); } catch(e) {}
-      }
-      initWhatsApp();
-    }, 5000);
-  });
+  // (disconnected handler is registered above at line ~536)
 
   // State Change — কানেকশনের অবস্থা পরিবর্তন হলে লগ করো
   client.on('change_state', (state) => {
@@ -688,14 +694,7 @@ function initWhatsApp() {
     }
   });
 
-  client.on('auth_failure', () => {
-    isReady = false;
-    isConnected = false;
-    console.log('❌ Auth failure — নতুন QR দরকার হবে');
-    broadcast({ type: 'auth_failure' });
-    // Auth failure মানে সেশন expired — নতুন করে শুরু করো
-    setTimeout(() => initWhatsApp(), 5000);
-  });
+  // (auth_failure handler is registered above at line ~529)
 
   client.initialize().catch(err => {
     console.error('❌ Init error:', err.message);

@@ -522,9 +522,12 @@ function initWhatsApp() {
     authStrategy: new LocalAuth({ dataPath: './.wwebjs_auth' }),
     authTimeoutMs: 0,
     qrMaxRetries: 15,
+    webVersionCache: {
+      type: 'none',
+    },
     puppeteer: {
       headless: true,
-      executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/google-chrome-stable',
+      executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || (process.platform === 'linux' ? '/usr/bin/google-chrome-stable' : undefined),
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',

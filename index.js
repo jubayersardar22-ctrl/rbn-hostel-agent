@@ -482,19 +482,21 @@ function initWhatsApp() {
   client = new Client({
     authStrategy: new NoAuth(),
     authTimeoutMs: 0,
-    qrMaxRetries: 10,
+    qrMaxRetries: 15,
     puppeteer: {
       headless: true,
-      executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
+      // Official puppeteer docker image has Chrome at this path
+      executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/google-chrome-stable',
       args: [
-        '--no-sandbox', '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage', '--disable-accelerated-2d-canvas',
-        '--no-first-run', '--no-zygote',
-        '--disable-gpu', '--disable-extensions',
-        '--disable-background-timer-throttling',
-        '--disable-backgrounding-occluded-windows',
-        '--disable-renderer-backgrounding',
-        '--disable-ipc-flooding-protection'
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-accelerated-2d-canvas',
+        '--no-first-run',
+        '--no-zygote',
+        '--disable-gpu',
+        '--disable-extensions',
+        '--single-process'
       ]
     }
   });
@@ -508,7 +510,7 @@ function initWhatsApp() {
     currentQR = qr;
     isReady = false;
     isConnected = false;
-    console.log('\n📱 QR Code তৈরি হয়েছে');
+    console.log('\n📱 QR Code তৈরি হয়েছে - ড্যাশবোর্ডে দেখান');
     qrcode.generate(qr, { small: true });
 
     try {
@@ -517,8 +519,27 @@ function initWhatsApp() {
         color: { dark: '#128C7E', light: '#FFFFFF' }
       });
       broadcast({ type: 'qr_updated', qr: qrImageDataUrl });
+      console.log('✅ QR broadcast সফল');
     } catch (e) {
-      console.error('QR image error:', e.message);
+      console.error('❌ QR image error:', e.message);
+    }
+  });
+
+  // Auth failure
+  client.on('auth_failure', (msg) => {
+    console.error('❌ Auth failure:', msg);
+    broadcast({ type: 'auth_failure', message: msg });
+    setTimeout(() => initWhatsApp(), 5000);
+  });
+
+  // Disconnected
+  client.on('disconnected', (reason) => {
+    console.warn('⚠️ WhatsApp disconnected:', reason);
+    isReady = false;
+    isConnected = false;
+    broadcast({ type: 'whatsapp_disconnected', reason });
+    if (reason !== 'LOGOUT') {
+      setTimeout(() => initWhatsApp(), 8000);
     }
   });
 

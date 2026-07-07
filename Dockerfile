@@ -1,50 +1,12 @@
 # ============================================
-# Nibedika WhatsApp Agent - Dockerfile
+# RBN Hostel WhatsApp Agent - Dockerfile
+# Uses puppeteer's bundled Chromium for reliability
 # ============================================
 
-FROM node:20-slim
+FROM ghcr.io/puppeteer/puppeteer:22
 
-# Install Chrome dependencies for Puppeteer
-RUN apt-get update && apt-get install -y \
-    chromium \
-    chromium-sandbox \
-    fonts-liberation \
-    fonts-noto \
-    fonts-noto-cjk \
-    libatk-bridge2.0-0 \
-    libatk1.0-0 \
-    libcairo2 \
-    libcups2 \
-    libdbus-1-3 \
-    libdrm2 \
-    libgbm1 \
-    libglib2.0-0 \
-    libgtk-3-0 \
-    libnspr4 \
-    libnss3 \
-    libpango-1.0-0 \
-    libpangocairo-1.0-0 \
-    libx11-6 \
-    libx11-xcb1 \
-    libxcb1 \
-    libxcomposite1 \
-    libxcursor1 \
-    libxdamage1 \
-    libxext6 \
-    libxfixes3 \
-    libxi6 \
-    libxrandr2 \
-    libxrender1 \
-    libxss1 \
-    libxtst6 \
-    wget \
-    --no-install-recommends \
-    && rm -rf /var/lib/apt/lists/*
-
-# Set Chrome path for Puppeteer
-ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
-ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
-ENV CHROME_BIN=/usr/bin/chromium
+# Root user to install packages
+USER root
 
 # Set working directory
 WORKDIR /app
@@ -52,16 +14,19 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
+# Install dependencies (allow puppeteer to download its own Chromium)
 RUN npm ci --omit=dev
 
 # Copy source code
 COPY . .
 
-# Create images directory
-RUN mkdir -p images
+# Create required directories
+RUN mkdir -p images data
 
-# Expose port (for health check)
+# Use the puppeteer user (non-root, for security)
+USER pptruser
+
+# Expose port
 EXPOSE 3000
 
 # Start agent

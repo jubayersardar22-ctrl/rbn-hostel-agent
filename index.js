@@ -698,11 +698,10 @@ function initWhatsApp() {
             }
           } catch (err) {
             if (err.message === 'API_ERROR') {
-              console.log(`⚠️ API Error hit for ${msg.from}. Queuing message.`);
-              pendingQueue.push({ from: msg.from, body: body });
-              // আমরা সাথে সাথে কোনো 'দুঃখিত' মেসেজ পাঠাবো না, কারণ কিউ থেকে একটু পরেই উত্তর যাবে।
-              // इससे ইউজারের কাছে বট আরও মানবিক মনে হবে।
-              return;
+              console.log(`⚠️ API Error hit for ${msg.from}. Falling back to knowledge base.`);
+              // We don't queue or return anymore, just let it fall through to the fallback handler below.
+            } else {
+              console.error('❌ LLM Unknown Error:', err.message);
             }
           }
         } else {

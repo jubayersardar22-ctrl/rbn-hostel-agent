@@ -1,5 +1,5 @@
 // =============================================================
-// RBN Hostel - WhatsApp AI এজেন্ট v4.0
+// Arogya Sadan - WhatsApp AI এজেন্ট v4.0
 // Express + WebSocket + Multi-LLM (Gemini/OpenAI/Claude) + Dashboard
 // =============================================================
 'use strict';
@@ -15,7 +15,7 @@ const QRCode = require('qrcode');
 const path = require('path');
 const fs = require('fs');
 
-const HOSTEL_INFO = require('./knowledge_base');
+const HOSPITAL_INFO = require('./knowledge_base');
 const MessageHandler = require('./handlers/messageHandler');
 const MaintenanceHandler = require('./handlers/maintenanceHandler');
 const llm = require('./llm-router');
@@ -547,8 +547,8 @@ function initWhatsApp() {
     }
   });
 
-  const messageHandler = new MessageHandler(client, HOSTEL_INFO, { agentName: 'RBN Hostel সহকারী' });
-  const maintenanceHandler = new MaintenanceHandler(client, HOSTEL_INFO);
+  const messageHandler = new MessageHandler(client, HOSPITAL_INFO, { agentName: 'আরোগ্য সদন সহকারী' });
+  const maintenanceHandler = new MaintenanceHandler(client, HOSPITAL_INFO);
 
   // QR Code
   client.on('qr', async (qr) => {
@@ -743,7 +743,7 @@ function initWhatsApp() {
 // ===== Server Start =====
 server.listen(PORT, () => {
   console.log('\n' + '='.repeat(60));
-  console.log('🚀 RBN Hostel WhatsApp এজেন্ট v4.0');
+  console.log('🚀 Arogya Sadan WhatsApp এজেন্ট v4.0');
   console.log('='.repeat(60));
   console.log(`\n🌐 Dashboard: http://localhost:${PORT}`);
   console.log(`📊 Status API: http://localhost:${PORT}/api/status\n`);

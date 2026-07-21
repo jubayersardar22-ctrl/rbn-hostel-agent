@@ -674,8 +674,11 @@ function initWhatsApp() {
       // Typing indicator
       try {
         const chat = await msg.getChat();
+        await chat.sendSeen(); // Must mark as seen before typing in Multi-Device
         await chat.sendStateTyping();
-      } catch {}
+      } catch (e) {
+        console.error('Error sending typing state:', e.message);
+      }
 
       // ===== LLM (Gemini/OpenAI/Claude) দিয়ে উত্তর =====
       // প্রথমে LLM চেষ্টা করো — না পারলে knowledge base fallback
@@ -687,11 +690,14 @@ function initWhatsApp() {
               // Simulating realistic human typing delay
               try {
                 const chat = await msg.getChat();
+                // Send typing state again to keep it active if LLM took too long
                 await chat.sendStateTyping();
                 const replyLength = aiReply.length;
-                const typingDuration = Math.min(Math.max(replyLength * 80, 2000), 6000); // 2 to 6 seconds
+                const typingDuration = Math.min(Math.max(replyLength * 50, 1000), 3000); // 1 to 3 seconds
                 await new Promise(resolve => setTimeout(resolve, typingDuration));
-              } catch (e) {}
+              } catch (e) {
+                console.error('Error simulating typing delay:', e.message);
+              }
 
               await msg.reply(aiReply);
               return;

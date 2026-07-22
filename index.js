@@ -523,8 +523,8 @@ function initWhatsApp() {
     authTimeoutMs: 0,
     qrMaxRetries: 15,
     webVersionCache: {
-      type: 'local',
-      strict: false
+      type: 'remote',
+      remotePath: 'https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/2.3000.1014587000-alpha.html'
     },
     puppeteer: {
       headless: true,
@@ -542,6 +542,7 @@ function initWhatsApp() {
         '--disable-backgrounding-occluded-windows',
         '--disable-renderer-backgrounding',
         '--disable-software-rasterizer',
+        '--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
         '--js-flags="--max-old-space-size=256"'
       ]
     }

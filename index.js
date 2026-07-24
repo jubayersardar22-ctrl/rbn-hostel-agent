@@ -1,5 +1,5 @@
 // =============================================================
-// Arogya Sadan - WhatsApp AI এজেন্ট v4.0
+// RBN Hostel - WhatsApp AI এজেন্ট v4.0
 // Express + WebSocket + Multi-LLM (Gemini/OpenAI/Claude) + Dashboard
 // =============================================================
 'use strict';
@@ -15,7 +15,7 @@ const QRCode = require('qrcode');
 const path = require('path');
 const fs = require('fs');
 
-const HOSPITAL_INFO = require('./knowledge_base');
+const HOSTEL_INFO = require('./knowledge_base');
 const MessageHandler = require('./handlers/messageHandler');
 const MaintenanceHandler = require('./handlers/maintenanceHandler');
 const llm = require('./llm-router');
@@ -548,8 +548,8 @@ function initWhatsApp() {
     }
   });
 
-  const messageHandler = new MessageHandler(client, HOSPITAL_INFO, { agentName: 'আরোগ্য সদন সহকারী' });
-  const maintenanceHandler = new MaintenanceHandler(client, HOSPITAL_INFO);
+  const messageHandler = new MessageHandler(client, HOSTEL_INFO, { agentName: 'RBN Hostel সহকারী' });
+  const maintenanceHandler = new MaintenanceHandler(client, HOSTEL_INFO);
 
   // QR Code
   client.on('qr', async (qr) => {
@@ -675,11 +675,9 @@ function initWhatsApp() {
       // Typing indicator
       try {
         const chat = await msg.getChat();
-        await chat.sendSeen(); // Must mark as seen before typing in Multi-Device
+        await chat.sendSeen();
         await chat.sendStateTyping();
-      } catch (e) {
-        console.error('Error sending typing state:', e.message);
-      }
+      } catch {}
 
       // ===== LLM (Gemini/OpenAI/Claude) দিয়ে উত্তর =====
       // প্রথমে LLM চেষ্টা করো — না পারলে knowledge base fallback
@@ -691,14 +689,11 @@ function initWhatsApp() {
               // Simulating realistic human typing delay
               try {
                 const chat = await msg.getChat();
-                // Send typing state again to keep it active if LLM took too long
                 await chat.sendStateTyping();
                 const replyLength = aiReply.length;
-                const typingDuration = Math.min(Math.max(replyLength * 50, 1000), 3000); // 1 to 3 seconds
+                const typingDuration = Math.min(Math.max(replyLength * 80, 2000), 6000); // 2 to 6 seconds
                 await new Promise(resolve => setTimeout(resolve, typingDuration));
-              } catch (e) {
-                console.error('Error simulating typing delay:', e.message);
-              }
+              } catch (e) {}
 
               await msg.reply(aiReply);
               return;
@@ -750,7 +745,7 @@ function initWhatsApp() {
 // ===== Server Start =====
 server.listen(PORT, () => {
   console.log('\n' + '='.repeat(60));
-  console.log('🚀 Arogya Sadan WhatsApp এজেন্ট v4.0');
+  console.log('🚀 RBN Hostel WhatsApp এজেন্ট v4.0');
   console.log('='.repeat(60));
   console.log(`\n🌐 Dashboard: http://localhost:${PORT}`);
   console.log(`📊 Status API: http://localhost:${PORT}/api/status\n`);

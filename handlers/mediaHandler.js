@@ -1,6 +1,6 @@
 // =============================================================
 // মিডিয়া হ্যান্ডলার - ছবি পাঠানো
-// Media Handler - Send Hospital Photos
+// Media Handler - Send room photos
 // =============================================================
 
 'use strict';
@@ -11,6 +11,14 @@ const fs = require('fs');
 const https = require('https');
 const http = require('http');
 
+// Google Drive থেকে পাওয়া ছবির লিংক (ওয়েবসাইট থেকে সংগ্রহ করা)
+const ROOM_PHOTOS = [
+  {
+    url: 'https://drive.google.com/thumbnail?id=1OaLYB_-01C4Da_8XydaW7dwJlY6_nhum&sz=w800',
+    caption: '🏠 নিবেদিকা ভিআইপি হোস্টেল - হোস্টেলের দৃশ্য'
+  }
+];
+
 // স্থানীয় ছবি ফোল্ডার
 const IMAGES_DIR = path.join(__dirname, '..', 'images');
 
@@ -19,23 +27,27 @@ class MediaHandler {
     this.client = client;
   }
 
-  // ===== হাসপাতালের ছবি পাঠান =====
+  // ===== রুমের ছবি পাঠান =====
   async sendRoomPhotos(msg) {
     try {
-      await msg.reply(`📸 *আরোগ্য সদন হাসপাতালের ছবি পাঠাচ্ছি...*
+      // প্রথমে টেক্সট মেসেজ পাঠান
+      await msg.reply(`📸 *নিবেদিকা হোস্টেলের ছবি পাঠাচ্ছি...*
 
-🏥 আমাদের বৈশিষ্ট্য:
-• পরিচ্ছন্ন ও রোগী-বান্ধব পরিবেশ
-• আধুনিক ডায়াগনস্টিক ও অপারেশন থিয়েটার
-• আরামদায়ক কেবিন
+🏠 আমাদের হোস্টেলের বৈশিষ্ট্য:
+• আধুনিক টাইলসকৃত রুম
+• পরিষ্কার ও সাজানো পরিবেশ
+• আরামদায়ক আসবাবপত্র
 
 একটু অপেক্ষা করুন... ⏳`);
 
+      // স্থানীয় ছবি চেক করুন
       const localImages = this.getLocalImages();
       
       if (localImages.length > 0) {
+        // স্থানীয় ছবি পাঠান
         await this.sendLocalImages(msg, localImages);
       } else {
+        // ছবি না থাকলে বিকল্প তথ্য দিন
         await this.sendPhotoAlternative(msg);
       }
       
@@ -43,12 +55,15 @@ class MediaHandler {
       console.error('❌ ছবি পাঠাতে এরর:', error.message);
       await msg.reply(`😔 ছবি পাঠাতে সমস্যা হয়েছে।
 
-আমাদের হাসপাতাল পরিদর্শনে আসুন:
-📍 নীলটুলি, মুজিব সড়ক, ফরিদপুর
-📞 ইমার্জেন্সি: *০১৭১৩-০২৪৮০০*`);
+আমাদের ওয়েবসাইটে ছবি দেখুন:
+🌐 https://nibedikahostel.netlify.app
+
+অথবা সরাসরি হোস্টেল পরিদর্শনে আসুন।
+📞 আগে কল করুন: *01750523734*`);
     }
   }
 
+  // ===== স্থানীয় ছবি খুঁজুন =====
   getLocalImages() {
     try {
       if (!fs.existsSync(IMAGES_DIR)) {
@@ -60,27 +75,28 @@ class MediaHandler {
         .filter(f => /\.(jpg|jpeg|png|gif|webp)$/i.test(f))
         .map(f => path.join(IMAGES_DIR, f));
       
-      return files.slice(0, 5); 
+      return files.slice(0, 5); // সর্বোচ্চ ৫টি ছবি
     } catch (error) {
       console.error('❌ ছবি ফোল্ডার পড়তে এরর:', error.message);
       return [];
     }
   }
 
+  // ===== স্থানীয় ছবি পাঠান =====
   async sendLocalImages(msg, imagePaths) {
     const captions = [
-      '🏥 আরোগ্য সদন হাসপাতাল - দৃশ্য',
-      '🛏️ আরামদায়ক কেবিন',
-      '🔬 আধুনিক ল্যাব',
-      '🚑 ইমার্জেন্সি সার্ভিস',
-      '👨‍⚕️ ডাক্তারদের চেম্বার'
+      '🏠 নিবেদিকা হোস্টেল - রুমের দৃশ্য',
+      '🛏️ আরামদায়ক বেড এবং স্টাডি টেবিল',
+      '🚿 পরিষ্কার বাথরুম সুবিধা',
+      '🍽️ ডাইনিং এরিয়া',
+      '📚 পড়ার জায়গা'
     ];
     
     for (let i = 0; i < imagePaths.length; i++) {
       try {
         const media = MessageMedia.fromFilePath(imagePaths[i]);
         await this.client.sendMessage(msg.from, media, {
-          caption: captions[i] || `📸 আরোগ্য সদন - ছবি ${i + 1}`
+          caption: captions[i] || `📸 নিবেদিকা হোস্টেল - ছবি ${i + 1}`
         });
         await new Promise(r => setTimeout(r, 500));
       } catch (e) {
@@ -90,30 +106,39 @@ class MediaHandler {
     
     await msg.reply(`✅ *সব ছবি পাঠানো হয়েছে!*
 
-📞 বিস্তারিত জানতে কল করুন: *০১৭১৩-০২৪৮০০*`);
+🌐 আরো ছবি দেখতে: https://nibedikahostel.netlify.app
+📞 হোস্টেল পরিদর্শনে: *01750523734*`);
   }
 
+  // ===== ছবির বিকল্প =====
   async sendPhotoAlternative(msg) {
-    const text = `📸 *আরোগ্য সদন হাসপাতালের ছবি*
+    const text = `📸 *নিবেদিকা হোস্টেলের ছবি*
+
+আমাদের হোস্টেলের সকল ছবি দেখতে পাবেন:
+🌐 *ওয়েবসাইট:* https://nibedikahostel.netlify.app
 
 ━━━━━━━━━━━━━━━━━
-🏥 *আমাদের বৈশিষ্ট্য:*
+🏠 *আমাদের রুমের বৈশিষ্ট্য:*
 
-✅ সম্পূর্ণ আধুনিক ও পরিচ্ছন্ন পরিবেশ
-✅ ২৪/৭ ইমার্জেন্সি ও অ্যাম্বুলেন্স 
-✅ এসি/নন-এসি কেবিন ও ওয়ার্ড
-✅ আধুনিক অপারেশন থিয়েটার
-✅ ডিজিটাল ল্যাব ও ডায়াগনস্টিক
+✅ সম্পূর্ণ টাইলসকৃত আধুনিক রুম
+✅ প্রতিটি সিটে খাট, টেবিল ও চেয়ার
+✅ কাপড় রাখার স্পেস
+✅ পরিষ্কার অ্যাটাচ বাথরুম (৩ ও ৪ সিটে)
+✅ বেলকনি সুবিধা (৩ ও ৪ সিটে)
+✅ এসি / নন-এসি উভয় অপশন
+✅ ফ্ল্যাট লিফট সুবিধা
 
 ━━━━━━━━━━━━━━━━━
-🔍 *সরাসরি যোগাযোগ করুন:*
-📞 ইমার্জেন্সি: *০১৭১৩-০২৪৮০০*
+🔍 *সরাসরি দেখতে চাইলে:*
+📞 আগে কল করুন: *01750523734*
+⏰ অফিস সময়: সকাল ৯টা - রাত ৯টা
 
-আপনাকে সুস্বাস্থ্য কামনা করছি! 😊`;
+আমরা আপনাকে হোস্টেল পরিদর্শনে আমন্ত্রণ জানাই! 😊`;
 
     await msg.reply(text);
   }
 
+  // ===== URL থেকে ছবি ডাউনলোড করে পাঠান =====
   async sendImageFromUrl(msg, imageUrl, caption) {
     return new Promise((resolve, reject) => {
       const protocol = imageUrl.startsWith('https') ? https : http;
@@ -128,7 +153,7 @@ class MediaHandler {
             const base64 = buffer.toString('base64');
             const mimetype = response.headers['content-type'] || 'image/jpeg';
             
-            const media = new MessageMedia(mimetype, base64, 'hospital.jpg');
+            const media = new MessageMedia(mimetype, base64, 'hostel_room.jpg');
             await this.client.sendMessage(msg.from, media, { caption });
             resolve();
           } catch (e) {
@@ -139,6 +164,18 @@ class MediaHandler {
         response.on('error', reject);
       }).on('error', reject);
     });
+  }
+
+  // ===== লোকাল ছবি যোগ করুন (ইউটিলিটি ফাংশন) =====
+  async addLocalImage(imageBuffer, filename) {
+    if (!fs.existsSync(IMAGES_DIR)) {
+      fs.mkdirSync(IMAGES_DIR, { recursive: true });
+    }
+    
+    const filepath = path.join(IMAGES_DIR, filename);
+    fs.writeFileSync(filepath, imageBuffer);
+    console.log(`✅ ছবি সংরক্ষিত: ${filepath}`);
+    return filepath;
   }
 }
 
